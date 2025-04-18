@@ -1,0 +1,9 @@
+admin_mpbrtapishipment_printlabel:
+    path: /mpbrtapishipment/printlabel/{orderId}
+    methods: [GET]
+    defaults:
+        _controller: "MpBrtApiShipmentPrintLabelController::printLabel"
+        _legacy_controller: "AdminMpBrtApiShipmentPrintLabel"
+        _legacy_link: "AdminMpBrtApiShipmentPrintLabel"
+    requirements:
+        orderId: \d+

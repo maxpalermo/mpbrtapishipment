@@ -1,0 +1,28 @@
+{
+    "name": "mpsoft/mpbrtapishipment",
+    "description": "Modulo PrestaShop per l'integrazione spedizioni con API BRT (Bartolini)",
+    "type": "prestashop-module",
+    "license": "AFL-3.0",
+    "authors": [
+        {
+            "name": "Massimiliano Palermo",
+            "email": "maxx.palermo@gmail.com"
+        }
+    ],
+    "require": {
+        "php": ">=7.4",
+        "ext-curl": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "MpSoft\\MpBrtApiShipment\\": "src/"
+        }
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-main": "1.0.x-dev"
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

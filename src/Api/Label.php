@@ -1,4 +1,5 @@
 <?php
+
 namespace MpSoft\MpBrtApiShipment\Api;
 
 class Label
@@ -20,7 +21,7 @@ class Label
         $this->trackingByParcelID = $trackingByParcelID;
     }
 
-    public static function fromArray($arr)
+    public static function fromArray($arr): Label
     {
         return new self(
             $arr['dataLength'] ?? 0,

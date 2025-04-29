@@ -11,7 +11,9 @@
     ],
     "require": {
         "php": ">=7.4",
-        "ext-curl": "*"
+        "ext-curl": "*",
+        "setasign/fpdf": "^1.8",
+        "setasign/fpdi": "^2.5"
     },
     "autoload": {
         "psr-4": {

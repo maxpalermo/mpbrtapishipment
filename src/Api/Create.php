@@ -1,7 +1,8 @@
 <?php
+
 /**
  * Copyright since 2007 PrestaShop SA and Contributors
- * PrestaShop is an International Registered Trademark & Property of PrestaShop SA
+ * PrestaShop is an International Registered Trademark & Property of PrestaShop SA.
  *
  * NOTICE OF LICENSE
  *
@@ -20,19 +21,19 @@
 
 namespace MpSoft\MpBrtApiShipment\Api;
 
-use MpSoft\MpBrtApiShipment\Api\Account;
-use MpSoft\MpBrtApiShipment\Api\LabelParameters;
-use MpSoft\MpBrtApiShipment\Api\ShipmentRequest;
-use MpSoft\MpBrtApiShipment\Api\ShipmentResponse;
-use MpSoft\MpBrtApiShipment\Api\BrtAuthManager;
+use MpSoft\MpBrtApiShipment\Models\ModelBrtShipmentRequest;
+use MpSoft\MpBrtApiShipment\Models\ModelBrtShipmentResponse;
+use MpSoft\MpBrtApiShipment\Models\ModelBrtShipmentResponseLabel;
 
 class Create
 {
     /**
-     * Invia una spedizione a BRT usando un ordine PrestaShop
-     * @param int $orderId ID ordine PrestaShop
-     * @param array $config Configurazione dati fissi BRT (senza credenziali)
-     * @param string|null $env Ambiente ('real' o 'sandbox'), se null prende da config PrestaShop
+     * Invia una spedizione a BRT usando un ordine PrestaShop.
+     *
+     * @param int         $orderId ID ordine PrestaShop
+     * @param array       $config  Configurazione dati fissi BRT (senza credenziali)
+     * @param string|null $env     Ambiente ('real' o 'sandbox'), se null prende da config PrestaShop
+     *
      * @return ShipmentResponse Risposta API BRT come oggetto
      */
     public static function sendShipment($orderId, $config, $env = null)
@@ -47,18 +48,23 @@ class Create
         $province = $address->id_state ? \State::getNameById($address->id_state) : '';
 
         // Prepara i dati spedizione secondo la documentazione BRT (tutti i campi, default dove mancante)
+        $account = (new BrtAuthManager())->getAccount();
+        $weightKg = $order->getTotalWeight();
+        if (!$weightKg) {
+            $weightKg = 1;
+        }
         $shipmentData = [
             'network' => $config['network'] ?? '',
             'departureDepot' => $config['departureDepot'],
-            'senderCustomerCode' => $config['senderCustomerCode'],
+            'senderCustomerCode' => $account->userID,
             'deliveryFreightTypeCode' => $config['deliveryFreightTypeCode'] ?? 'DAP',
-            'consigneeCompanyName' => $address->company ?: ($customer->firstname . ' ' . $customer->lastname),
+            'consigneeCompanyName' => $address->company ?: ($customer->firstname.' '.$customer->lastname),
             'consigneeAddress' => $address->address1,
             'consigneeCountryAbbreviationISOAlpha2' => $countryIso,
             'consigneeZIPCode' => $address->postcode,
             'consigneeCity' => $address->city,
             'consigneeProvinceAbbreviation' => $province,
-            'consigneeContactName' => $customer->firstname . ' ' . $customer->lastname,
+            'consigneeContactName' => $customer->firstname.' '.$customer->lastname,
             'consigneeTelephone' => $address->phone ?: $address->phone_mobile,
             'consigneeEMail' => $customer->email,
             'consigneeMobilePhoneNumber' => '',
@@ -103,7 +109,7 @@ class Create
             'numericSenderReference' => $order->id,
             'alphanumericSenderReference' => $order->reference,
             'numberOfParcels' => 1,
-            'weightKG' => $order->getTotalWeight(),
+            'weightKG' => $weightKg,
             'volumeM3' => 0,
             'consigneeClosingShift1_DayOfTheWeek' => '',
             'consigneeClosingShift1_PeriodOfTheDay' => '',
@@ -115,30 +121,6 @@ class Create
             'holdForPickup' => '',
             'genericReference' => '',
             // Campi relativi a labelParameters non qui ma nella root
-            // Campi relativi a actualSender
-            'actualSender' => [
-                'actualSenderName' => '',
-                'actualSenderCity' => '',
-                'actualSenderAddress' => '',
-                'actualSenderZIPCode' => '',
-                'actualSenderProvince' => '',
-                'actualSenderCountry' => '',
-                'actualSenderEmail' => '',
-                'actualSenderMobilePhoneNumber' => '',
-                'actualSenderPudoId' => '',
-            ],
-            // Campi relativi a returnShipmentConsignee
-            'returnShipmentConsignee' => [
-                'returnShipmentConsigneeName' => '',
-                'returnShipmentConsigneeCity' => '',
-                'returnShipmentConsigneeAddress' => '',
-                'returnShipmentConsigneeZIPCode' => '',
-                'returnShipmentConsigneeProvince' => '',
-                'returnShipmentConsigneeCountry' => '',
-                'returnShipmentConsigneeEmail' => '',
-                'returnShipmentConsigneeMobilePhoneNumber' => '',
-                'returnShipmentConsigneePudoId' => '',
-            ],
             'pudoId' => '',
             'brtServiceCode' => '',
         ];
@@ -161,50 +143,134 @@ class Create
         }
 
         // Gestione ambiente e credenziali
-        if ($env === null) {
+        if (null === $env) {
             $env = \Configuration::get('BRT_ENVIRONMENT') ?: BrtAuthManager::ENV_REAL;
         }
         $authManager = new BrtAuthManager();
-        $account = $authManager->getAccount($env);
+        $account = $authManager->getAccount();
         $labelObj = isset($config['labelParameters']) ? LabelParameters::fromArray($config['labelParameters']) : new LabelParameters();
         $isLabelRequired = $config['isLabelRequired'] ?? 1;
         $shipmentRequest = new ShipmentRequest($account, $shipmentData, $isLabelRequired, $labelObj);
+
         return self::sendShipmentRequest($shipmentRequest);
     }
 
     /**
-     * Invia una spedizione a BRT passando direttamente tutti i dati necessari (object style)
-     * @param ShipmentRequest $shipmentRequest
+     * Invia una spedizione a BRT passando direttamente tutti i dati necessari (object style).
+     *
      * @param string|null $env Ambiente ('real' o 'sandbox'), opzionale solo se vuoi cambiare endpoint in base all'ambiente
-     * @return ShipmentResponse
      */
-    public static function sendShipmentRequest(ShipmentRequest $shipmentRequest, $env = null)
+    public static function sendShipmentRequest(ShipmentRequest $shipmentRequest, $env = null): ShipmentResponse
     {
+        // Salva la richiesta
+        $orderId = isset($shipmentRequest->createData['numericSenderReference']) ? $shipmentRequest->createData['numericSenderReference'] : 0;
+        $modelRequest = new ModelBrtShipmentRequest();
+        $modelRequest->order_id = $orderId;
+        $modelRequest->numeric_sender_reference = $shipmentRequest->createData['numericSenderReference'];
+        $modelRequest->account_json = json_encode($shipmentRequest->account->toArray());
+        $modelRequest->create_data_json = json_encode($shipmentRequest->createData);
+        $modelRequest->is_label_required = (int) $shipmentRequest->isLabelRequired;
+        $modelRequest->label_parameters_json = json_encode($shipmentRequest->labelParameters->toArray());
+        $modelRequest->date_add = date('Y-m-d H:i:s');
+        $modelRequest->date_upd = date('Y-m-d H:i:s');
+        $modelRequest->save();
+
         $payload = $shipmentRequest->toArray();
         $response = self::callApi($payload);
+
         // Interpreta la risposta come ShipmentResponse
+        $shipmentResponse = null;
         if (!empty($response['data']['createResponse'])) {
-            return new ShipmentResponse($response['data']['createResponse']);
+            $shipmentResponse = new ShipmentResponse($response['data']['createResponse']);
         } else {
             // Risposta di errore generica
-            return new ShipmentResponse([
+            $shipmentResponse = new ShipmentResponse([
                 'executionMessage' => [
                     'code' => $response['data']['executionMessage']['code'] ?? -999,
                     'severity' => 'ERROR',
                     'codeDesc' => 'NO RESPONSE',
                     'message' => $response['error'] ?? 'Errore sconosciuto',
-                ]
+                ],
             ]);
         }
+
+        // Salva la response
+        $modelResponse = new ModelBrtShipmentResponse();
+        $modelResponse->current_time_utc = $shipmentResponse->currentTimeUTC;
+        $modelResponse->arrival_terminal = $shipmentResponse->arrivalTerminal;
+        $modelResponse->arrival_depot = $shipmentResponse->arrivalDepot;
+        $modelResponse->delivery_zone = $shipmentResponse->deliveryZone;
+        $modelResponse->parcel_number_from = $shipmentResponse->parcelNumberFrom;
+        $modelResponse->parcel_number_to = $shipmentResponse->parcelNumberTo;
+        $modelResponse->departure_depot = $shipmentResponse->departureDepot;
+        $modelResponse->series_number = $shipmentResponse->seriesNumber;
+        $modelResponse->service_type = $shipmentResponse->serviceType;
+        $modelResponse->consignee_company_name = $shipmentResponse->consigneeCompanyName;
+        $modelResponse->consignee_address = $shipmentResponse->consigneeAddress;
+        $modelResponse->consignee_zip_code = $shipmentResponse->consigneeZIPCode;
+        $modelResponse->consignee_city = $shipmentResponse->consigneeCity;
+        $modelResponse->consignee_province_abbreviation = $shipmentResponse->consigneeProvinceAbbreviation;
+        $modelResponse->consignee_country_abbreviation_brt = $shipmentResponse->consigneeCountryAbbreviationBRT;
+        $modelResponse->number_of_parcels = $shipmentResponse->numberOfParcels;
+        $modelResponse->weight_kg = $shipmentResponse->weightKG;
+        $modelResponse->volume_m3 = $shipmentResponse->volumeM3;
+        $modelResponse->numeric_sender_reference = $shipmentRequest->createData['numericSenderReference'];
+        $modelResponse->alphanumeric_sender_reference = $shipmentResponse->alphanumericSenderReference;
+        $modelResponse->sender_company_name = $shipmentResponse->senderCompanyName;
+        $modelResponse->sender_province_abbreviation = $shipmentResponse->senderProvinceAbbreviation;
+        $modelResponse->disclaimer = $shipmentResponse->disclaimer;
+        $modelResponse->execution_message = json_encode($shipmentResponse->executionMessage);
+        $modelResponse->save();
+
+        // Salva le label (se presenti)
+        if (is_array($shipmentResponse->labels) && !empty($shipmentResponse->labels)) {
+            foreach ($shipmentResponse->getLabels() as $key => $label) {
+                $modelLabel = new ModelBrtShipmentResponseLabel();
+                $modelLabel->id_brt_shipment_response = $modelResponse->id;
+                $modelLabel->number = $key + 1;
+                $modelLabel->data_length = $label->dataLength ?? 0;
+                $modelLabel->parcel_id = $label->parcelID ?? '';
+                $modelLabel->stream = $label->stream ?? '';
+                $modelLabel->stream_digital_label = $label->streamDigitalLabel ?? '';
+                $modelLabel->parcel_number_geo_post = $label->parcelNumberGeoPost ?? '';
+                $modelLabel->tracking_by_parcel_id = $label->trackingByParcelId ?? '';
+                $modelLabel->format = \Configuration::get('BRT_LABEL_FORMAT') ?? 'BASE64';
+                $modelLabel->save();
+            }
+        }
+
+        return $shipmentResponse;
     }
 
     /**
-     * Esegue la chiamata HTTP POST all'API BRT
+     * Esegue la chiamata HTTP POST all'API BRT.
+     *
      * @param array $payload
+     *
      * @return array
      */
     protected static function callApi($payload)
     {
+        // elimino id_order dall'array
+        if (isset($payload['createData']['id_order'])) {
+            unset($payload['createData']['id_order']);
+        }
+
+        try {
+            // controllo peso e misure
+            if ($payload['createData']['weightKG'] <= 0) {
+                $payload['createData']['weightKG'] = 1;
+            }
+            if ($payload['createData']['numberOfParcels'] <= 0) {
+                $payload['createData']['numberOfParcels'] = 1;
+            }
+        } catch (\Exception $ex) {
+            return [
+                'success' => false,
+                'error' => $ex->getMessage(),
+            ];
+        }
+
         $url = 'https://api.brt.it/rest/v1/shipments/shipment';
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -216,8 +282,9 @@ class Create
         $error = curl_error($ch);
         curl_close($ch);
 
-        if ($httpcode == 200 && $result) {
+        if (200 == $httpcode && $result) {
             $data = json_decode($result, true);
+
             return [
                 'success' => true,
                 'data' => $data,
@@ -233,8 +300,10 @@ class Create
     }
 
     /**
-     * Decodifica lo stream etichetta (Base64)
+     * Decodifica lo stream etichetta (Base64).
+     *
      * @param string $stream
+     *
      * @return string|false
      */
     public static function decodeLabel($stream)
@@ -243,7 +312,7 @@ class Create
     }
 }
 
-/**
+/*
  * Esempio pratico di utilizzo in un controller PrestaShop:
  *
  * use MpSoft\MpBrtApiShipment\Api\Create;
@@ -266,6 +335,3 @@ class Create
  *     echo $shipmentResponse->executionMessage->message;
  * }
  */
-
-
-

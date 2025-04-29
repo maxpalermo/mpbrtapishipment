@@ -1,4 +1,5 @@
 <?php
+
 namespace MpSoft\MpBrtApiShipment\Api;
 
 class ShipmentResponse
@@ -58,5 +59,10 @@ class ShipmentResponse
                 $this->labels[] = Label::fromArray($lbl);
             }
         }
+    }
+
+    public function getLabels() : array
+    {
+        return $this->labels;
     }
 }

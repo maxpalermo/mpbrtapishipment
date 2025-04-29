@@ -1,4 +1,5 @@
 <?php
+
 namespace MpSoft\MpBrtApiShipment\Api;
 
 class ExecutionMessage
@@ -24,5 +25,15 @@ class ExecutionMessage
             $arr['codeDesc'] ?? '',
             $arr['message'] ?? ''
         );
+    }
+
+    public function toMsgError()
+    {
+        return implode('<br>', [
+            "Codice: {$this->code}",
+            "Gravità: {$this->severity}",
+            "Descrizione: {$this->codeDesc}",
+            "Messaggio: {$this->message}",
+        ]);
     }
 }

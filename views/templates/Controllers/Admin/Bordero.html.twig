@@ -1,0 +1,39 @@
+{% extends '@PrestaShop/Admin/layout.html.twig' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Borderò BRT</h2>
+    {% if bordero is empty %}
+        <div class="alert alert-info">Nessun borderò da mostrare.</div>
+    {% else %}
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped">
+                <thead>
+                <tr>
+                    {% for key in bordero|keys %}
+                        <th>{{ key|title }}</th>
+                    {% endfor %}
+                </tr>
+                </thead>
+                <tbody>
+                {% for row in bordero %}
+                    <tr>
+                        {% for value in row %}
+                            <td>
+                                {% if value is iterable %}
+                                    {% for item in value %}
+                                        {{ item }}{% if not loop.last %}, {% endif %}
+                                    {% endfor %}
+                                {% else %}
+                                    {{ value }}
+                                {% endif %}
+                            </td>
+                        {% endfor %}
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

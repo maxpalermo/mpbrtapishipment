@@ -1,9 +1,25 @@
-admin_mpbrtapishipment_printlabel:
-    path: /mpbrtapishipment/printlabel/{orderId}
-    methods: [GET]
+# modules/mpbrtapishipment/config/routes.yml
+
+mpbrtapishipment_admin_bordero:
+    path: /admin/brt/bordero
     defaults:
-        _controller: "MpBrtApiShipmentPrintLabelController::printLabel"
-        _legacy_controller: "AdminMpBrtApiShipmentPrintLabel"
-        _legacy_link: "AdminMpBrtApiShipmentPrintLabel"
+        _controller: 'MpSoft\MpBrtApiShipment\Controllers\Admin\Improve\AdminParentShipping\BrtBorderoController::showLastPendingBorderoAction'
+        _legacy_controller: "AdminBrtBordero"
+        _legacy_link: "AdminBrtBordero"
+
+mpbrtapishipment_admin_printlabel:
+    path: /admin/brt/printlabel/{id_bordero}
+    defaults:
+        _controller: 'MpSoft\MpBrtApiShipment\Controllers\Admin\Improve\AdminParentShipping\BrtBorderoController::printLabelAction'
+        _legacy_controller: "AdminBrtBordero"
+        _legacy_link: "AdminBrtBordero"
+
+mpbrtapishipment_admin_getlabellink:
+    path: /admin/brt/bordero/getLabelLink/{numericSenderReference}
+    defaults:
+        _controller: 'MpSoft\MpBrtApiShipment\Controllers\Admin\Improve\AdminParentShipping\BrtBorderoController::getLabelLinkAction'
+        _legacy_controller: "AdminBrtBordero"
+        _legacy_link: "AdminBrtBordero"
+        _method: "GET"
     requirements:
-        orderId: \d+
+        numericSenderReference: "/[0-9]+"

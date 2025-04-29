@@ -1,40 +1,74 @@
 <?php
+
+/**
+ * Copyright since 2007 PrestaShop SA and Contributors
+ * PrestaShop is an International Registered Trademark & Property of PrestaShop SA.
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Academic Free License version 3.0
+ * that is bundled with this package in the file LICENSE.md.
+ * It is also available through the world-wide-web at this URL:
+ * https://opensource.org/licenses/AFL-3.0
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to license@prestashop.com so we can send you a copy immediately.
+ *
+ * @author    Massimiliano Palermo <maxx.palermo@gmail.com>
+ * @copyright Since 2016 Massimiliano Palermo
+ * @license   https://opensource.org/licenses/AFL-3.0 Academic Free License version 3.0
+ */
+
+namespace MpSoft\MpBrtApiShipment\Controllers\Admin;
+
+require_once _PS_MODULE_DIR_.'/mpbrtapishipment/vendor/autoload.php';
+
 use PrestaShopBundle\Controller\Admin\FrameworkBundleAdminController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Controller per la stampa etichetta BRT da action della grid ordini
+ * Controller per la stampa etichetta BRT da action della grid ordini.
  */
 class MpBrtApiShipmentPrintLabelController extends FrameworkBundleAdminController
 {
+    public function showLastPendingBorderoAction()
+    {
+        $bordero = \MpSoft\MpBrtApiShipment\Models\ModelBrtShipmentBordero::compileBordero();
+
+        return $this->render('@MpBrtApiShipment/Controllers/Admin/Bordero.html.twig', [
+            'bordero' => $bordero,
+        ]);
+    }
+
     /**
      * Stampa etichetta BRT per ordine
-     * Rotta: /mpbrtapishipment/printlabel/{orderId}
+     * Rotta: /mpbrtapishipment/printlabel/{orderId}.
      *
-     * @param Request $request
      * @param int $orderId
+     *
      * @return Response
      */
-    public function printLabel(Request $request, $orderId)
+    public function printLabelAction(Request $request, $orderId)
     {
         // 1. Recupera l'ordine
-        $order = new \Order((int)$orderId);
-        if (!Validate::isLoadedObject($order)) {
+        $order = new \Order((int) $orderId);
+        if (!\Validate::isLoadedObject($order)) {
             $this->addFlash('error', 'Ordine non trovato.');
+
             return $this->redirectToRoute('admin_orders_index');
         }
 
         // 2. Recupera parametri di configurazione
-        $env = Configuration::get('BRT_ENVIRONMENT');
-        $departureDepot = Configuration::get('BRT_DEPARTURE_DEPOT');
-        $senderCustomerCode = Configuration::get('BRT_SENDER_CUSTOMER_CODE');
-        $outputType = Configuration::get('BRT_LABEL_OUTPUT_TYPE');
-        $offsetX = (int) Configuration::get('BRT_LABEL_OFFSET_X');
-        $offsetY = (int) Configuration::get('BRT_LABEL_OFFSET_Y');
-        $isBorderRequired = Configuration::get('BRT_LABEL_BORDER');
-        $isLogoRequired = Configuration::get('BRT_LABEL_LOGO');
-        $isBarcodeControlRowRequired = Configuration::get('BRT_LABEL_BARCODE');
+        $env = \Configuration::get('BRT_ENVIRONMENT');
+        $departureDepot = \Configuration::get('BRT_DEPARTURE_DEPOT');
+        $senderCustomerCode = \Configuration::get('BRT_SENDER_CUSTOMER_CODE');
+        $outputType = \Configuration::get('BRT_LABEL_OUTPUT_TYPE');
+        $offsetX = (int) \Configuration::get('BRT_LABEL_OFFSET_X');
+        $offsetY = (int) \Configuration::get('BRT_LABEL_OFFSET_Y');
+        $isBorderRequired = \Configuration::get('BRT_LABEL_BORDER');
+        $isLogoRequired = \Configuration::get('BRT_LABEL_LOGO');
+        $isBarcodeControlRowRequired = \Configuration::get('BRT_LABEL_BARCODE');
 
         // 3. Prepara array di configurazione per Create::sendShipment
         // Recupera oggetti PrestaShop necessari
@@ -78,13 +112,13 @@ class MpBrtApiShipmentPrintLabelController extends FrameworkBundleAdminControlle
             // Campi spedizione BRT principali
             'network' => '', // opzionale, valorizza da config se necessario
             'deliveryFreightTypeCode' => 'DAP',
-            'consigneeCompanyName' => $address->company ?: ($customer->firstname . ' ' . $customer->lastname),
+            'consigneeCompanyName' => $address->company ?: ($customer->firstname.' '.$customer->lastname),
             'consigneeAddress' => $address->address1,
             'consigneeCountryAbbreviationISOAlpha2' => $countryIso,
             'consigneeZIPCode' => $address->postcode,
             'consigneeCity' => $address->city,
             'consigneeProvinceAbbreviation' => $province,
-            'consigneeContactName' => $customer->firstname . ' ' . $customer->lastname,
+            'consigneeContactName' => $customer->firstname.' '.$customer->lastname,
             'consigneeTelephone' => $address->phone ?: $address->phone_mobile,
             'consigneeEMail' => $customer->email,
             'consigneeMobilePhoneNumber' => '', // opzionale
@@ -146,21 +180,36 @@ class MpBrtApiShipmentPrintLabelController extends FrameworkBundleAdminControlle
 
         try {
             // 4. Invia richiesta a BRT usando la firma corretta
-            $response = \MpSoft\MpBrtApiShipment\Api\Create::sendShipment((int)$orderId, $config, $env);
+            $response = \MpSoft\MpBrtApiShipment\Api\Create::sendShipment((int) $orderId, $config, $env);
             if (isset($response->labels) && is_array($response->labels) && count($response->labels) > 0) {
-                $label = $response->labels[0];
-                $pdfContent = base64_decode($label->stream);
-                return new Response($pdfContent, 200, [
+                // Unisci tutte le label PDF in un unico PDF multipagina
+                $pdf = new \setasign\Fpdi\Fpdi();
+                foreach ($response->labels as $label) {
+                    $pdfContent = base64_decode($label->stream);
+                    $tmpFile = tempnam(sys_get_temp_dir(), 'brt_label_');
+                    file_put_contents($tmpFile, $pdfContent);
+                    $pageCount = $pdf->setSourceFile($tmpFile);
+                    for ($pageNo = 1; $pageNo <= $pageCount; ++$pageNo) {
+                        $tpl = $pdf->importPage($pageNo);
+                        $pdf->AddPage();
+                        $pdf->useTemplate($tpl);
+                    }
+                    unlink($tmpFile);
+                }
+                $finalPdf = $pdf->Output('S');
+
+                return new Response($finalPdf, 200, [
                     'Content-Type' => 'application/pdf',
-                    'Content-Disposition' => 'inline; filename="brt_label_'.$orderId.'.pdf"'
+                    'Content-Disposition' => 'inline; filename="brt_labels_'.$orderId.'.pdf"',
                 ]);
             } else {
-                $msg = $response->executionMessage->message ?? 'Nessuna etichetta restituita da BRT.';
-                $this->addFlash('error', $msg);
+                $error = $response->executionMessage->toMsgError();
+                $this->addFlash('error', $error);
             }
         } catch (\Exception $e) {
-            $this->addFlash('error', 'Errore generazione etichetta: ' . $e->getMessage());
+            $this->addFlash('error', 'Errore generazione etichetta: '.$e->getMessage());
         }
-        return $this->redirectToRoute('admin_orders_view', ['orderId' => (int)$orderId]);
+
+        return $this->redirectToRoute('admin_orders_view', ['orderId' => (int) $orderId]);
     }
 }

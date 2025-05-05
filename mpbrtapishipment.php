@@ -160,6 +160,13 @@ class MpBrtApiShipment extends Module
             'form' => [
                 'legend' => ['title' => $this->l('Configurazione BRT API')],
                 'input' => [
+                    // Link CRON
+                    [
+                        'type' => 'html',
+                        'label' => $this->l('Link CRON'),
+                        'name' => 'cron_link',
+                        'html_content' => $this->getCronLinkHtml(),
+                    ],
                     // Ambiente e credenziali
                     [
                         'type' => 'select',
@@ -260,9 +267,11 @@ class MpBrtApiShipment extends Module
                         ],
                     ],
                     [
+                        'col' => 6,
                         'type' => 'select',
                         'label' => $this->l('Tipo di pagamento contrassegno'),
                         'name' => 'BRT_PAYMENT_COD',
+                        'class' => 'select2',
                         'options' => [
                             'query' => [
                                 ['value' => '',   'label' => 'ACCETTARE CONTANTE'],
@@ -408,6 +417,34 @@ class MpBrtApiShipment extends Module
         }
 
         return $output.$helper->generateForm([$fields_form]);
+    }
+
+    protected function getCronLinkHtml()
+    {
+        $path = _PS_MODULE_DIR_.$this->name.'/views/templates/cron/cronLink.tpl';
+        $tpl = $this->context->smarty->createTemplate($path);
+        $tpl->assign([
+            'cron_link' => $this->context->link->getModuleLink(
+                $this->name,
+                'AutoWeight',
+                [
+                    'ajax' => 1,
+                    'action' => 'insert',
+                    'PECOD' => '123456',
+                    'PPESO' => '1',
+                    'PVOLU' => '1',
+                    'X' => '100',
+                    'Y' => '100',
+                    'Z' => '100',
+                    'ID_FISCALE' => 'ABCDEFG',
+                    'PFLAG' => '1',
+                    'ENVELOPE' => '0',
+                    'PTIMP' => '2025-05-01+15:19:20',
+                ]
+            ),
+        ]);
+
+        return $tpl->fetch();
     }
 
     /**
@@ -646,10 +683,12 @@ class MpBrtApiShipment extends Module
      */
     public function hookDisplayAdminEndContent($params)
     {
-        $isAdminOrdersController = preg_match('/AdminOrders/i', Tools::getValue('controller'));
+        $controller = Tools::getValue('controller');
+        $isAdminOrdersController = preg_match('/AdminOrders/i', $controller);
+        $isModuleAdminController = preg_match('/AdminModules/i', $controller);
         $id_order = (int) Tools::getValue('id_order');
 
-        if (!$isAdminOrdersController) {
+        if (!$isAdminOrdersController && !$isModuleAdminController) {
             return '';
         }
 
@@ -669,7 +708,7 @@ class MpBrtApiShipment extends Module
         }
 
         if ($isAdminOrdersController && $id_order > 0) {
-            $frontController = $this->context->link->getModuleLink($this->name, 'ajaxLabelForm');
+            $frontController = $this->context->link->getModuleLink($this->name, 'AjaxLabelForm');
 
             $script = <<<JS
                 <script type="text/javascript">
@@ -678,6 +717,22 @@ class MpBrtApiShipment extends Module
                     
                     document.addEventListener('DOMContentLoaded', () => {
                         console.log("DOMCONTENT Loaded: BrtApiShipment");
+                        $(".select2").select2({
+                            language: "it",
+                            width: '100%'
+                        });
+                    });
+                </script>
+            JS;
+
+            return $script;
+        }
+
+        if ($isModuleAdminController) {
+            $script = <<<JS
+                <script type="text/javascript">
+                    document.addEventListener('DOMContentLoaded', () => {
+                        console.log("DOMCONTENT Loaded: Applying Select2");
                         $(".select2").select2({
                             language: "it",
                             width: '100%'

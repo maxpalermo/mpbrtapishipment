@@ -21,15 +21,21 @@
 
 namespace MpSoft\MpBrtApiShipment\Models;
 
+use MpSoft\MpBrtApiShipment\Helpers\GetByNumericReference;
+
 class ModelBrtShipmentBordero extends \ObjectModel
 {
     public const BORDERO_STATUS_PENDING = 0;
     public const BORDERO_STATUS_PRINTED = 1;
 
     public $id_brt_shipment_response;
+    public $numeric_sender_reference;
+    public $alphanumeric_sender_reference;
     public $bordero_number;
     public $bordero_date;
     public $bordero_status;
+    public $printed;
+    public $printed_date;
     public $id_employee;
     public $date_add;
     public $date_upd;
@@ -39,14 +45,64 @@ class ModelBrtShipmentBordero extends \ObjectModel
         'primary' => 'id_brt_shipment_bordero',
         'fields' => [
             'id_brt_shipment_response' => ['type' => self::TYPE_INT, 'validate' => 'isUnsignedId'],
+            'numeric_sender_reference' => ['type' => self::TYPE_STRING, 'size' => '15', 'validate' => 'isUnsignedInt'],
+            'alphanumeric_sender_reference' => ['type' => self::TYPE_STRING, 'size' => '15', 'validate' => 'isAnything'],
             'bordero_number' => ['type' => self::TYPE_STRING, 'validate' => 'isString'],
             'bordero_date' => ['type' => self::TYPE_DATE, 'validate' => 'isDate'],
             'bordero_status' => ['type' => self::TYPE_INT, 'validate' => 'isUnsignedInt'],
-            'id_employee' => ['type' => self::TYPE_INT, 'validate' => 'isUnsignedId'],
-            'date_add' => ['type' => self::TYPE_DATE, 'validate' => 'isDate'],
-            'date_upd' => ['type' => self::TYPE_DATE, 'validate' => 'isDateFormat'],
+            'printed' => ['type' => self::TYPE_BOOL, 'validate' => 'isBool', 'required' => false],
+            'printed_date' => ['type' => self::TYPE_DATE, 'validate' => 'isDate', 'required' => false],
+            'id_employee' => ['type' => self::TYPE_INT, 'validate' => 'isUnsignedId', 'required' => false],
+            'date_add' => ['type' => self::TYPE_DATE, 'validate' => 'isDate', 'required' => true],
+            'date_upd' => ['type' => self::TYPE_DATE, 'validate' => 'isDateFormat', 'required' => false],
         ],
     ];
+
+    public static function getUnprintedBorderoRows()
+    {
+        $db = \Db::getInstance();
+        $subQuery = new \DbQuery();
+        $subQuery->select('id_brt_shipment_response')
+            ->from(self::$definition['table'])
+            ->where('bordero_status = '.(int) self::BORDERO_STATUS_PENDING);
+        $subQuery = $subQuery->build();
+        $query = new \DbQuery();
+        $query->select('*')
+            ->from(ModelBrtShipmentResponse::$definition['table'])
+            ->where('id_brt_shipment_response IN ('.$subQuery.')');
+
+        $result = $db->executeS($query);
+        if (!$result) {
+            return [];
+        }
+
+        return $result;
+    }
+
+    public static function getBorderoByNumber($borderoNumber)
+    {
+        $db = \Db::getInstance();
+        $subQuery = new \DbQuery();
+        $subQuery->select('*')
+            ->from(self::$definition['table'])
+            ->where('bordero_number = '.(int) $borderoNumber)
+            ->build();
+
+        return $db->executeS($subQuery);
+    }
+
+    public static function getLastUnprintedBorderoNumber()
+    {
+        $db = \Db::getInstance();
+        $query = new \DbQuery();
+        $query->select('bordero_number')
+            ->from('brt_shipment_bordero')
+            ->where('bordero_status = '.(int) self::BORDERO_STATUS_PENDING);
+
+        $result = (int) $db->getValue($query);
+
+        return ++$result;
+    }
 
     public static function getLatestBorderoNumber()
     {
@@ -70,6 +126,7 @@ class ModelBrtShipmentBordero extends \ObjectModel
 
     public static function compileBordero($params = null)
     {
+        $numericSenderReference = $params['numericSenderReference'] ?? null;
         $db = \Db::getInstance();
         $query = new \DbQuery();
         $query->select('*')
@@ -81,6 +138,7 @@ class ModelBrtShipmentBordero extends \ObjectModel
         $bordero = [];
 
         if ($result) {
+            $bordero['numeric_sender_reference'] = $numericSenderReference;
             $bordero['number'] = self::getLatestBorderoNumber();
             $bordero['date'] = date('Y-m-d');
             $bordero['status'] = self::BORDERO_STATUS_PENDING;
@@ -153,5 +211,35 @@ class ModelBrtShipmentBordero extends \ObjectModel
         return array_map(function ($id) {
             return $id[self::$definition['primary']];
         }, $ids);
+    }
+
+    public static function getByNumericSenderReference($numericSenderReference): ModelBrtShipmentBordero
+    {
+        $result = (new GetByNumericReference($numericSenderReference, self::$definition['table'], self::$definition['primary']))->run(self::class);
+        if ($result) {
+            return $result[0];
+        }
+
+        return new self();
+    }
+
+    public static function updateBorderoStatus($bordero_number, $status = null)
+    {
+        if (null === $status) {
+            $status = self::BORDERO_STATUS_PRINTED;
+        }
+
+        $db = \Db::getInstance();
+        $res = $db->update(
+            self::$definition['table'],
+            [
+                'bordero_status' => (int) $status,
+                'printed' => 1,
+                'printed_date' => date('Y-m-d H:i:s'),
+            ],
+            'bordero_number = '.(int) $bordero_number
+        );
+
+        return $res;
     }
 }

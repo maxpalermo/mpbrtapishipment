@@ -2,11 +2,12 @@
 
 use MpSoft\MpBrtApiShipment\Api\ExecutionMessage;
 use MpSoft\MpBrtApiShipment\Models\ModelBrtShipmentBordero;
+use MpSoft\MpBrtApiShipment\Models\ModelBrtShipmentLabelWeight;
 use MpSoft\MpBrtApiShipment\Models\ModelBrtShipmentResponse;
 
 /**
  * Controller AJAX per restituire il form etichetta BRT (labelForm.tpl)
- * URL: /module/mpbrtapishipment/ajaxLabelForm.
+ * URL: /module/mpbrtapishipment/AjaxLabelForm.
  */
 class MpBrtApiShipmentAjaxLabelFormModuleFrontController extends ModuleFrontController
 {
@@ -30,7 +31,7 @@ class MpBrtApiShipmentAjaxLabelFormModuleFrontController extends ModuleFrontCont
                 return [
                     'success' => true,
                     'stream' => base64_encode($label),
-                    'bordero' => ModelBrtShipmentBordero::compileBordero(),
+                    'bordero' => ModelBrtShipmentBordero::compileBordero(['numericSenderReference' => $numericSenderReference]),
                 ];
             }
         }
@@ -138,37 +139,33 @@ class MpBrtApiShipmentAjaxLabelFormModuleFrontController extends ModuleFrontCont
     protected function deleteLabelReference($id_order)
     {
         // Prelevo NumericReference e alphaNumericReference
-        $shipmentsRequestModel = MpSoft\MpBrtApiShipment\Models\ModelBrtShipmentRequest::getByIdOrder($id_order);
-        foreach ($shipmentsRequestModel as $shipmentRequestModel) {
-            $data_json = json_decode($shipmentRequestModel->create_data_json, true);
-            if (is_array($data_json)) {
-                $numericSenderReference = $data_json['numericSenderReference'];
-                $alphanumericSenderReference = $data_json['alphanumericSenderReference'];
-            }
-            // 1. Rimuovi la richiesta
-            if (Validate::isLoadedObject($shipmentRequestModel)) {
-                $shipmentRequestModel->delete();
-            }
-            // 2. Rimuovi la Response
-            $shipmentsResponseModel = ModelBrtShipmentResponse::getByNumericSenderReference($numericSenderReference);
-            foreach ($shipmentsResponseModel as $shipmentResponseModel) {
-                if (Validate::isLoadedObject($shipmentResponseModel)) {
-                    $shipmentResponseId = (int) $shipmentResponseModel->id;
-                    $shipmentResponseModel->delete();
+        $shipmentRequestModel = MpSoft\MpBrtApiShipment\Models\ModelBrtShipmentRequest::getByIdOrder($id_order);
+        $data_json = json_decode($shipmentRequestModel->create_data_json, true);
+        if (is_array($data_json)) {
+            $numericSenderReference = $data_json['numericSenderReference'];
+            $alphanumericSenderReference = $data_json['alphanumericSenderReference'];
+        }
+        // 1. Rimuovi la richiesta
+        if (Validate::isLoadedObject($shipmentRequestModel)) {
+            $shipmentRequestModel->delete();
+        }
+        // 2. Rimuovi la Response
+        $shipmentResponseModel = ModelBrtShipmentResponse::getByNumericSenderReference($numericSenderReference);
+        if (Validate::isLoadedObject($shipmentResponseModel)) {
+            $shipmentResponseId = (int) $shipmentResponseModel->id;
+            $shipmentResponseModel->delete();
 
-                    // 3. Rimuovi le label
-                    $labelsModel = MpSoft\MpBrtApiShipment\Models\ModelBrtShipmentResponseLabel::getByShipmentResponseId($shipmentResponseId);
-                    foreach ($labelsModel as $labelModel) {
-                        if (Validate::isLoadedObject($labelModel)) {
-                            $labelModel->delete();
-                        }
-                    }
+            // 3. Rimuovi le label
+            $labelsModel = MpSoft\MpBrtApiShipment\Models\ModelBrtShipmentResponseLabel::getByNumericSenderReference($numericSenderReference);
+            foreach ($labelsModel as $labelModel) {
+                if (Validate::isLoadedObject($labelModel)) {
+                    $labelModel->delete();
                 }
             }
         }
     }
 
-    public function displayAjaxCreateLabel($params = null)
+    public function displayAjaxCreateLabelRequest($params = null)
     {
         header('Content-Type: application/json');
         if (!isset($params['data']) || !is_array($params['data'])) {
@@ -178,6 +175,8 @@ class MpBrtApiShipmentAjaxLabelFormModuleFrontController extends ModuleFrontCont
         }
         $data = $params['data'];
         $order_id = isset($data['id_order']) ? (int) $data['id_order'] : 0;
+        $numericSenderReference = $data['numericSenderReference'];
+        $alphanumericSenderReference = $data['alphanumericSenderReference'];
 
         if (!$order_id) {
             http_response_code(400);
@@ -191,6 +190,7 @@ class MpBrtApiShipmentAjaxLabelFormModuleFrontController extends ModuleFrontCont
 
         // Sposto il parametro parcels
         $parcels = $data['parcels'];
+        $this->updateParcelsMeasurement($parcels);
         unset($data['parcels']);
 
         // creo i parametri per la label
@@ -200,10 +200,11 @@ class MpBrtApiShipmentAjaxLabelFormModuleFrontController extends ModuleFrontCont
 
         $shipmentRequestModel->order_id = $order_id;
         $shipmentRequestModel->numeric_sender_reference = $data['numericSenderReference'];
+        $shipmentRequestModel->alphanumeric_sender_reference = $data['alphanumericSenderReference'];
         $shipmentRequestModel->account_json = json_encode($params['account']);
         $shipmentRequestModel->create_data_json = json_encode($data);
         $shipmentRequestModel->is_label_required = (int) (Configuration::get('BRT_IS_LABEL_REQUIRED') ?? 0);
-        $shipmentRequestModel->label_parameters_json = json_encode([]); // Puoi popolare se necessario
+        $shipmentRequestModel->label_parameters_json = json_encode($labelParameters->toArray());
         $shipmentRequestModel->date_add = date('Y-m-d H:i:s');
         $shipmentRequestModel->date_upd = date('Y-m-d H:i:s');
         $shipmentRequestModel->save();
@@ -217,6 +218,7 @@ class MpBrtApiShipmentAjaxLabelFormModuleFrontController extends ModuleFrontCont
             $params['actualSender'] ?? [],
             $params['returnShipmentConsignee'] ?? []
         ));
+
         // Controllo se i dati sono a posto
         if (!$apiRequestArray->compareWithDefaultParams()) {
             return [
@@ -227,25 +229,30 @@ class MpBrtApiShipmentAjaxLabelFormModuleFrontController extends ModuleFrontCont
 
         // 2. Chiamata reale all'API BRT
         try {
-            $account = new MpSoft\MpBrtApiShipment\Api\Account($params['account']['userID'], $params['account']['password']);
-            // $shipmentRequest = new MpSoft\MpBrtApiShipment\Api\ShipmentRequest($account, $data, 1, $labelParameters);
             $shipmentRequest = new MpSoft\MpBrtApiShipment\Api\ShipmentRequest($apiRequestArray->toArray());
             $shipmentResponse = MpSoft\MpBrtApiShipment\Api\Create::sendShipmentRequest($shipmentRequest);
             $modelShipmentResponse = ModelBrtShipmentResponse::getByNumericSenderReference($order_id);
 
-            // 3. Salva la risposta (già fatto dentro sendShipmentRequest, ma puoi aggiungere logica custom qui)
+            // 3. Salva la risposta (già fatto dentro sendShipmentRequest)
             // 4. Salva le label (già fatto dentro sendShipmentRequest)
             // 5. Aggiorna il bordero
 
-            $bordero = new ModelBrtShipmentBordero();
-            if (Validate::isLoadedObject($bordero)) {
-                $bordero->id_brt_shipment_response = $modelShipmentResponse->id;
+            if (Validate::isLoadedObject($modelShipmentResponse)) {
+                $bordero = ModelBrtShipmentBordero::getByNumericSenderReference($numericSenderReference);
+                $bordero->numeric_sender_reference = $numericSenderReference;
+                $bordero->alphanumeric_sender_reference = $alphanumericSenderReference;
                 $bordero->bordero_number = ModelBrtShipmentBordero::getLatestBorderoNumber();
-                $bordero->bordero_date = date('Y-m-d H:i:s');
                 $bordero->bordero_status = 0;
+                $bordero->bordero_date = date('Y-m-d H:i:s');
                 $bordero->date_add = date('Y-m-d H:i:s');
                 $bordero->date_upd = date('Y-m-d H:i:s');
-                $bordero->save();
+
+                if (Validate::isLoadedObject($bordero)) {
+                    $bordero->update();
+                } else {
+                    $bordero->id_brt_shipment_response = $modelShipmentResponse->id;
+                    $bordero->add();
+                }
             }
 
             if (isset($shipmentResponse->executionMessage) && $shipmentResponse->executionMessage && method_exists($shipmentResponse->executionMessage, 'toMsgError')) {
@@ -418,13 +425,13 @@ class MpBrtApiShipmentAjaxLabelFormModuleFrontController extends ModuleFrontCont
             'pudoId' => '',
             'brtServiceCode' => '',
             // Campi tabella colli (verranno gestiti JS, ma lasciamo il placeholder)
-            'parcels' => [],
+            'parcels' => ModelBrtShipmentLabelWeight::getPackages($id_order),
         ];
 
         $tpl = $this->context->smarty->createTemplate('module:mpbrtapishipment/views/templates/labelForm.tpl');
         $tpl->assign('formData', $formData);
 
-        return ['html' => $tpl->fetch()];
+        return ['html' => $tpl->fetch(), 'parcels' => $formData['parcels']];
     }
 
     private function getProvinceById($id)
@@ -435,5 +442,24 @@ class MpBrtApiShipmentAjaxLabelFormModuleFrontController extends ModuleFrontCont
         }
 
         return $province->iso_code;
+    }
+
+    public function updateParcelsMeasurement($parcels)
+    {
+        foreach ($parcels as $parcel) {
+            $barcode = $parcel['barcode'];
+            $model = ModelBrtShipmentLabelWeight::getByBarcode($barcode);
+            if ($model) {
+                $model->barcode = $barcode;
+                $model->x = $parcel['length_mm'];
+                $model->y = $parcel['width_mm'];
+                $model->z = $parcel['height_mm'];
+                $model->volume = $parcel['volume_m3'];
+                $model->weight = $parcel['weight_kg'];
+                $model->is_read = true;
+                $model->is_envelope = $parcel['is_envelope'] ?? 0;
+                $model->save();
+            }
+        }
     }
 }

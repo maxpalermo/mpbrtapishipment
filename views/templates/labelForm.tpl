@@ -209,12 +209,12 @@
                             <table class="table table-light table-bordered" id="table-brt-measure">
                                 <thead class="thead-light">
                                     <tr>
-                                        <th>Collo</th>
-                                        <th>Lunghezza (cm)</th>
-                                        <th>Larghezza (cm)</th>
-                                        <th>Altezza (cm)</th>
-                                        <th>Volume (mq)</th>
+                                        <th>Lunghezza (mm)</th>
+                                        <th>Larghezza (mm)</th>
+                                        <th>Altezza (mm)</th>
+                                        <th>Volume (m3)</th>
                                         <th>Peso (Kg)</th>
+                                        <th>Collo</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -226,7 +226,7 @@
                                         <th></th>
                                         <th></th>
                                         <th>Colli</th>
-                                        <th>Volume (mq)</th>
+                                        <th>Volume (m3)</th>
                                         <th>Peso (Kg)</th>
                                     </tr>
                                     <tr id="total-row">
@@ -483,18 +483,13 @@
         <button type="button" class="swal2-cancel swal2-styled" style="background:#aaa;" onclick="Swal.close()">Annulla</button>
     </div>
 </form>
-{if isset($formData.parcels)}
-    <script>
-        window.initialParcels = {$formData.parcels|@json_encode nofilter};
-    </script>
-{/if}
 
 <script type="text/javascript">
     const id_order = {$formData.id_order};
+    const initialParcels = {$formData.parcels|@json_encode nofilter};
     document.addEventListener("DOMContentLoaded", function() {
         // Dispatch custom event when BRT label form is loaded
         console.log("BRT label form loaded");
-
         bindBrtLabelEvents();
     });
 </script>
@@ -503,16 +498,16 @@
 
 <template id="table-row">
     <tr>
+        <th><input type="text" class="form-control text-right td-length" name="length" id="length" value="0" min="0" required></th>
+        <th><input type="text" class="form-control text-right td-width" name="width" id="width" value="0" min="0" required></th>
+        <th><input type="text" class="form-control text-right td-height" name="height" id="height" value="0" min="0" required></th>
+        <th><input type="text" class="form-control text-right td-volume" name="volume" id="volume" value="0" min="0" required readonly></th>
+        <th><input type="text" class="form-control text-right td-weight" name="weight" id="weight" value="0" min="0" required></th>
         <th>
             <div class="btn-group text-center" role="group" aria-label="Button group">
                 <button type="button" class="btn btn-info" name="addParcels" title="Aggiungi collo"><i class="material-icons">add</i></button>
                 <button type="button" class="btn btn-danger" name="deleteParcels" title="Rimuovi collo"><i class="material-icons">delete</i></button>
             </div>
         </th>
-        <th><input type="text" class="form-control text-right td-length" name="length" id="length" value="0" min="0" required></th>
-        <th><input type="text" class="form-control text-right td-width" name="width" id="width" value="0" min="0" required></th>
-        <th><input type="text" class="form-control text-right td-height" name="height" id="height" value="0" min="0" required></th>
-        <th><input type="text" class="form-control text-right td-volume" name="volume" id="volume" value="0" min="0" required readonly></th>
-        <th><input type="text" class="form-control text-right td-weight" name="weight" id="weight" value="0" min="0" required></th>
     </tr>
 </template>

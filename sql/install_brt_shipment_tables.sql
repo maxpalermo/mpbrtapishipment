@@ -54,3 +54,20 @@ CREATE TABLE IF NOT EXISTS `__PREFIX__brt_shipment_response_label` (
   KEY (`id_brt_shipment_response`),
   CONSTRAINT `fk_brt_shipment_response_label_response` FOREIGN KEY (`id_brt_shipment_response`) REFERENCES `__PREFIX__brt_shipment_response` (`id_brt_shipment_response`) ON DELETE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
+
+-- Table: brt_label_weight
+CREATE TABLE IF NOT EXISTS `__PREFIX__brt_shipment_label_weight` (
+  `id_weight` int(11) NOT NULL AUTO_INCREMENT,
+  `barcode` varchar(255) NOT NULL,
+  `weight` float NOT NULL,
+  `volume` float NOT NULL DEFAULT 1,
+  `x` float NOT NULL DEFAULT 1,
+  `y` float NOT NULL DEFAULT 1,
+  `z` float NOT NULL DEFAULT 1,
+  `id_read` int(11) DEFAULT 0,
+  `is_read` tinyint(1) DEFAULT 0,
+  `is_envelope` tinyint(1) DEFAULT 0,
+  `date_add` datetime NOT NULL,
+  `date_upd` datetime NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id_weight`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;

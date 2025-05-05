@@ -19,9 +19,12 @@
  * @license   https://opensource.org/licenses/AFL-3.0 Academic Free License version 3.0
  */
 
+use MpSoft\MpBrtApiShipment\Api\ExecutionMessage;
+use MpSoft\MpBrtApiShipment\Helpers\DeleteLabel;
 use MpSoft\MpBrtApiShipment\Models\ModelBrtShipmentBordero;
 use MpSoft\MpBrtApiShipment\Models\ModelBrtShipmentResponse;
 use MpSoft\MpBrtApiShipment\Models\ModelBrtShipmentResponseLabel;
+use MpSoft\MpBrtApiShipment\Pdf\MpBrtBorderoPdf;
 
 class AdminBrtShippingBorderoController extends ModuleAdminController
 {
@@ -40,6 +43,14 @@ class AdminBrtShippingBorderoController extends ModuleAdminController
                 'align' => 'center',
                 'class' => 'fixed-width-xs',
             ],
+            'numeric_sender_reference' => [
+                'title' => 'Riferimento Numerico',
+                'filter_key' => 'a!numeric_sender_reference',
+            ],
+            'alphanumeric_sender_reference' => [
+                'title' => 'Riferimento Alfanumerico',
+                'filter_key' => 'a!alphanumeric_sender_reference',
+            ],
             'bordero_number' => [
                 'title' => 'Bordero',
                 'filter_key' => 'a!bordero_number',
@@ -48,14 +59,6 @@ class AdminBrtShippingBorderoController extends ModuleAdminController
                 'title' => 'Data',
                 'type' => 'datetime',
                 'filter_key' => 'a!bordero_date',
-            ],
-            'numeric_sender_reference' => [
-                'title' => 'Riferimento Ordine',
-                'filter_key' => 'b!numeric_sender_reference',
-            ],
-            'alphanumeric_sender_reference' => [
-                'title' => 'Tracking',
-                'filter_key' => 'b!alphanumeric_sender_reference',
             ],
             'consignee_company_name' => [
                 'title' => 'Destinatario',
@@ -117,6 +120,21 @@ class AdminBrtShippingBorderoController extends ModuleAdminController
 
         parent::__construct();
 
+        $phpInput = file_get_contents('php://input');
+        if ($phpInput) {
+            $jsonData = json_decode($phpInput, true);
+            if ($jsonData && isset($jsonData['action'])) {
+                $action = 'ajaxProcess'.Tools::ucfirst($jsonData['action']);
+                if (method_exists($this, $action)) {
+                    $result = $this->$action($jsonData);
+                    $this->sendAjaxResponse($result);
+                    exit;
+                }
+                http_response_code(400);
+                exit('<div style="color:red;padding:2em;">Azione non valida.</div>');
+            }
+        }
+
         $this->bulk_actions = [
             'printLabels' => [
                 'text' => $this->module->l('Stampa segnacolli'),
@@ -132,22 +150,15 @@ class AdminBrtShippingBorderoController extends ModuleAdminController
                 'href' => 'javascript:void(0);',
                 'icon' => 'icon-barcode text-danger',
             ],
+            'divider' => [
+                'text' => 'divider',
+            ],
+            'printBordero' => [
+                'text' => $this->module->l('Stampa borderò'),
+                'confirm' => $this->module->l('Sei sicuro di voler stampare il borderò?'),
+                'icon' => 'icon-file text-info',
+            ],
         ];
-
-        $phpInput = file_get_contents('php://input');
-        if ($phpInput) {
-            $jsonData = json_decode($phpInput, true);
-            if ($jsonData && isset($jsonData['action'])) {
-                $action = 'ajaxProcess'.Tools::ucfirst($jsonData['action']);
-                if (method_exists($this, $action)) {
-                    $result = $this->$action($jsonData);
-                    $this->sendAjaxResponse($result);
-                    exit;
-                }
-                http_response_code(400);
-                exit('<div style="color:red;padding:2em;">Azione non valida.</div>');
-            }
-        }
     }
 
     public function initPageHeaderToolbar()
@@ -299,15 +310,38 @@ class AdminBrtShippingBorderoController extends ModuleAdminController
         $this->sendAjaxResponse(['success' => false]);
     }
 
+    public function processDelete()
+    {
+        $id_bordero = (int) Tools::getValue($this->identifier);
+        $modelBrtBordero = new ModelBrtShipmentBordero($id_bordero);
+        if (!Validate::isLoadedObject($modelBrtBordero)) {
+            $this->errors[] = $this->module->l('Borderò non trovato');
+
+            return false;
+        }
+        $numericSenderReference = $modelBrtBordero->numeric_sender_reference;
+        $alphanumericSenderReference = $modelBrtBordero->alphanumeric_sender_reference;
+
+        $deleteResponse = (new DeleteLabel($numericSenderReference, $alphanumericSenderReference))->run();
+        $executionMessage = ExecutionMessage::fromArray($deleteResponse);
+        if (0 == $executionMessage->code) {
+            $this->confirmations[] = $this->module->l('Riga borderò cancellata con successo');
+            $result = true;
+        } else {
+            $this->errors[] = $this->module->l('Impossibile cancellare il borderò: '.$executionMessage->message);
+            $result = false;
+        }
+
+        return $result;
+    }
+
     public function ajaxProcessDeleteLabel()
     {
         $numericSenderReference = (int) Tools::getValue('numericSenderReference');
         $alphanumericSenderReference = (string) Tools::getValue('alphanumericSenderReference');
 
-        $ApiDelete = new MpSoft\MpBrtApiShipment\Api\Delete();
-        $response = $ApiDelete->deleteShipment($numericSenderReference, $alphanumericSenderReference);
-
-        $this->sendAjaxResponse(['response' => $response]);
+        $response = (new DeleteLabel($numericSenderReference, $alphanumericSenderReference))->run();
+        $this->sendAjaxResponse($response);
     }
 
     protected function sendAjaxResponse($data)
@@ -352,6 +386,46 @@ class AdminBrtShippingBorderoController extends ModuleAdminController
         }
 
         return $this->getPdfLabels($ids);
+    }
+
+    public function ajaxProcessprintBordero($data)
+    {
+        $db = Db::getInstance();
+        $bordero_number = ModelBrtShipmentBordero::getLastUnprintedBorderoNumber();
+        $bordero_date = date('Y-m-d H:i:s');
+
+        $subQuery = new DbQuery();
+        $subQuery->select('id_brt_shipment_response')
+            ->from('brt_shipment_bordero')
+            ->where('bordero_status = 0')
+            ->orderBy('id_brt_shipment_response ASC');
+        $subQuery = $subQuery->build();
+
+        $sql = new DbQuery();
+        $sql->select('*')
+            ->from('brt_shipment_response')
+            ->where('id_brt_shipment_response in ('.$subQuery.')')
+            ->orderBy('id_brt_shipment_response ASC');
+        $sql = $sql->build();
+
+        $result = $db->executeS($sql);
+        $pdf = null;
+        if ($result) {
+            $ids = array_column($result, 'id_brt_shipment_response');
+            $borderoPDF = new MpBrtBorderoPdf($ids, $bordero_number, $bordero_date);
+            $pdf = $borderoPDF->ajaxRender();
+            ModelBrtShipmentBordero::updateBorderoStatus($bordero_number);
+
+            return [
+                'success' => true,
+                'pdf' => base64_encode($pdf),
+            ];
+        }
+
+        return [
+            'success' => false,
+            'message' => 'Nessun segnacollo selezionato',
+        ];
     }
 
     public function getPdfLabels($ids)

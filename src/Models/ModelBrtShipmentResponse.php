@@ -21,6 +21,8 @@
 
 namespace MpSoft\MpBrtApiShipment\Models;
 
+use MpSoft\MpBrtApiShipment\Helpers\GetByNumericReference;
+
 class ModelBrtShipmentResponse extends \ObjectModel
 {
     public $id;
@@ -73,7 +75,7 @@ class ModelBrtShipmentResponse extends \ObjectModel
             'number_of_parcels' => ['type' => self::TYPE_INT, 'validate' => 'isUnsignedInt'],
             'weight_kg' => ['type' => self::TYPE_FLOAT, 'validate' => 'isFloat'],
             'volume_m3' => ['type' => self::TYPE_FLOAT, 'validate' => 'isFloat'],
-            'numeric_sender_reference' => ['type' => self::TYPE_STRING, 'validate' => 'isUnsignedInt'],
+            'numeric_sender_reference' => ['type' => self::TYPE_STRING, 'size' => 15, 'validate' => 'isUnsignedInt'],
             'alphanumeric_sender_reference' => ['type' => self::TYPE_STRING, 'validate' => 'isAnything'],
             'sender_company_name' => ['type' => self::TYPE_STRING, 'validate' => 'isAnything'],
             'sender_province_abbreviation' => ['type' => self::TYPE_STRING, 'validate' => 'isAnything'],
@@ -96,14 +98,11 @@ class ModelBrtShipmentResponse extends \ObjectModel
 
     public static function getByNumericSenderReference($numericSenderReference): ModelBrtShipmentResponse
     {
-        $db = \Db::getInstance();
-        $query = new \DbQuery();
-        $query->select(self::$definition['primary'])
-            ->from('brt_shipment_response')
-            ->where('numeric_sender_reference = '.(int) $numericSenderReference);
+        $result = (new GetByNumericReference($numericSenderReference, self::$definition['table'], self::$definition['primary']))->run(self::class);
+        if ($result) {
+            return $result[0];
+        }
 
-        $result = (int) $db->getValue($query);
-
-        return new self($result);
+        return new self();
     }
 }

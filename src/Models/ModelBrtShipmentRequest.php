@@ -21,11 +21,14 @@
 
 namespace MpSoft\MpBrtApiShipment\Models;
 
+use MpSoft\MpBrtApiShipment\Helpers\GetByNumericReference;
+
 class ModelBrtShipmentRequest extends \ObjectModel
 {
     public $id;
     public $order_id;
     public $numeric_sender_reference;
+    public $alphanumeric_sender_reference;
     public $account_json;
     public $create_data_json;
     public $is_label_required;
@@ -38,7 +41,8 @@ class ModelBrtShipmentRequest extends \ObjectModel
         'primary' => 'id_brt_shipment_request',
         'fields' => [
             'order_id' => ['type' => self::TYPE_INT, 'validate' => 'isUnsignedInt', 'required' => true],
-            'numeric_sender_reference' => ['type' => self::TYPE_INT, 'validate' => 'isUnsignedInt', 'required' => true],
+            'numeric_sender_reference' => ['type' => self::TYPE_STRING, 'size' => 15, 'validate' => 'isUnsignedInt', 'required' => true],
+            'alphanumeric_sender_reference' => ['type' => self::TYPE_STRING, 'size' => 15, 'validate' => 'isAnything', 'required' => true],
             'account_json' => ['type' => self::TYPE_HTML, 'validate' => 'isJson'],
             'create_data_json' => ['type' => self::TYPE_HTML, 'validate' => 'isJson'],
             'is_label_required' => ['type' => self::TYPE_INT, 'validate' => 'isBool'],
@@ -50,7 +54,11 @@ class ModelBrtShipmentRequest extends \ObjectModel
 
     public static function getByNumericSenderReference($numericSenderReference): ModelBrtShipmentRequest
     {
-        // todo
+        $result = (new GetByNumericReference($numericSenderReference, self::$definition['table'], self::$definition['primary']))->run(self::class);
+        if ($result) {
+            return $result[0];
+        }
+
         return new self();
     }
 

@@ -21,12 +21,15 @@
 
 namespace MpSoft\MpBrtApiShipment\Models;
 
+use MpSoft\MpBrtApiShipment\Helpers\GetByNumericReference;
 use setasign\Fpdi\Fpdi;
 
 class ModelBrtShipmentResponseLabel extends \ObjectModel
 {
     public $id_brt_shipment_response;
     public $number;
+    public $numeric_sender_reference;
+    public $alphanumeric_sender_reference;
     public $data_length;
     public $parcel_id;
     public $stream;
@@ -40,6 +43,8 @@ class ModelBrtShipmentResponseLabel extends \ObjectModel
         'primary' => 'id_brt_shipment_response_label',
         'fields' => [
             'id_brt_shipment_response' => ['type' => self::TYPE_INT, 'validate' => 'isUnsignedInt', 'required' => true],
+            'numeric_sender_reference' => ['type' => self::TYPE_STRING, 'size' => 15, 'validate' => 'isUnsignedInt', 'required' => true],
+            'alphanumeric_sender_reference' => ['type' => self::TYPE_STRING, 'size' => 15, 'validate' => 'isAnything', 'required' => true, 'size' => 64],
             'number' => ['type' => self::TYPE_INT, 'validate' => 'isUnsignedInt', 'required' => true],
             'data_length' => ['type' => self::TYPE_INT, 'validate' => 'isUnsignedInt', 'required' => true],
             'parcel_id' => ['type' => self::TYPE_STRING, 'validate' => 'isAnything', 'required' => true, 'size' => 64],
@@ -71,7 +76,7 @@ class ModelBrtShipmentResponseLabel extends \ObjectModel
         $db = \Db::getInstance();
         $query = new \DbQuery();
         $query->select(self::$definition['primary'])
-            ->from('brt_shipment_response_label')
+            ->from(self::$definition['table'])
             ->where('tracking_by_parcel_id = '.(int) $trackingParcelId);
 
         $result = $db->executeS($query);
@@ -87,25 +92,11 @@ class ModelBrtShipmentResponseLabel extends \ObjectModel
         return $labels;
     }
 
-    public static function getByShipmentResponseId($idBrtShipmentResponse): array
+    public static function getByNumericSenderReference($numericSenderReference): array
     {
-        $db = \Db::getInstance();
-        $query = new \DbQuery();
-        $query->select(self::$definition['primary'])
-            ->from('brt_shipment_response_label')
-            ->where('id_brt_shipment_response = '.(int) $idBrtShipmentResponse);
+        $result = (new GetByNumericReference($numericSenderReference, self::$definition['table'], self::$definition['primary']))->run(self::class);
 
-        $result = $db->executeS($query);
-        $labels = [];
-        if ($result) {
-            foreach ($result as $r) {
-                $labels[] = new self($r);
-            }
-
-            return $labels;
-        }
-
-        return $labels;
+        return $result;
     }
 
     public static function createLabelPdf($idBrtShipmentResponse)
@@ -113,7 +104,7 @@ class ModelBrtShipmentResponseLabel extends \ObjectModel
         $db = \Db::getInstance();
         $sql = new \DbQuery();
         $sql->select('stream')
-            ->from('brt_shipment_response_label')
+            ->from(self::$definition['table'])
             ->where('id_brt_shipment_response = '.(int) $idBrtShipmentResponse);
 
         $result = $db->executeS($sql);

@@ -82,11 +82,40 @@ function getTableSum() {
     trFoot.querySelector('input[name="numberOfParcels"]').value = colli;
 }
 
+function addTableRows(parcels) {
+    if (parcels.length > 0) {
+        console.log("PARCELS", parcels);
+
+        parcels.forEach((p) => {
+            const row = document.getElementById("table-row").content.cloneNode(true);
+            row.querySelector('input[name="length"]').value = Number(p.x || 0).toFixed(0);
+            row.querySelector('input[name="width"]').value = Number(p.y || 0).toFixed(0);
+            row.querySelector('input[name="height"]').value = Number(p.z || 0).toFixed(0);
+            row.querySelector('input[name="weight"]').value = Number(p.weight || 0).toFixed(3);
+            row.querySelector('input[name="volume"]').value = Number(p.volume || 0).toFixed(3);
+            document.getElementById("table-brt-measure").querySelector("tbody").appendChild(row);
+        });
+
+        bindTableEvents();
+        getTableSum();
+        setFocusOnRow();
+    } else {
+        addTableRow();
+    }
+}
+
 function addTableRow() {
     const row = document.getElementById("table-row").content.cloneNode(true);
     document.getElementById("table-brt-measure").querySelector("tbody").appendChild(row);
     bindTableEvents();
     getTableSum();
+    setFocusOnRow();
+}
+
+function setFocusOnRow() {
+    const rows = document.getElementById("table-brt-measure").querySelector("tbody").querySelectorAll("tr");
+    const lastRow = rows[rows.length - 1];
+    lastRow.querySelector('input[name="length"]').focus();
 }
 
 function bindTableEvents() {
@@ -143,10 +172,10 @@ function calcMeasure(tr) {
     const length = parseFloat(tr.querySelector('input[name="length"]').value);
     const width = parseFloat(tr.querySelector('input[name="width"]').value);
     const height = parseFloat(tr.querySelector('input[name="height"]').value);
-    const volume = (length * width * height) / 1000000;
-    const weight = parseFloat(tr.querySelector('input[name="weight"]').value);
-    tr.querySelector('input[name="volume"]').value = volume.toFixed(2);
-    tr.querySelector('input[name="weight"]').value = weight.toFixed(2);
+    const volume = Number((length * width * height) / 1000000000).toFixed(3);
+    const weight = Number(parseFloat(tr.querySelector('input[name="weight"]').value)).toFixed(3);
+    tr.querySelector('input[name="volume"]').value = volume;
+    tr.querySelector('input[name="weight"]').value = weight;
 }
 
 async function showBrtLabelForm(id_order) {
@@ -180,6 +209,7 @@ async function showBrtLabelForm(id_order) {
         if (!response.ok) throw new Error("Errore nel caricamento del form");
         const json = await response.json();
         const html = json.html || "<div class='alert alert-danger text-center'>Errore nel caricamento del form</div>";
+        const parcels = json.parcels || [];
         // Mostra il form nella modale
         Swal.fire({
             html: html,
@@ -195,7 +225,7 @@ async function showBrtLabelForm(id_order) {
                 if (popup && !popup.classList.contains("swal2-fullscreen")) {
                     popup.classList.add("swal2-fullscreen");
                 }
-                addTableRow();
+                addTableRows(parcels);
                 bindTableEvents();
                 brtLabelFormLoaded();
                 bindBrtLabelEvents();
@@ -260,13 +290,22 @@ async function createLabelRequest(e) {
     const parcels = [];
     const rows = document.getElementById("table-brt-measure").querySelector("tbody").querySelectorAll("tr");
     rows.forEach((row) => {
+        const index = row.rowIndex - 1;
+        const barcode = document.querySelector('input[name="numericSenderReference"]').value + "-" + (index + 1);
         const length = row.querySelector('input[name="length"]').value;
         const width = row.querySelector('input[name="width"]').value;
         const height = row.querySelector('input[name="height"]').value;
-        const weight = row.querySelector('input[name="weight"]').value;
-        const volume = row.querySelector('input[name="volume"]').value;
-        if (length || width || height || weight || volume) {
-            parcels.push({ length, width, height, weight, volume });
+        const weight = Number(row.querySelector('input[name="weight"]').value).toFixed(3);
+        const volume = Number((length * width * height) / 1000000000).toFixed(3);
+        if (barcode || length || width || height || weight || volume) {
+            parcels.push({
+                barcode: barcode,
+                length_mm: length,
+                width_mm: width,
+                height_mm: height,
+                weight_kg: weight,
+                volume_m3: volume
+            });
         }
     });
 
@@ -282,7 +321,7 @@ async function createLabelRequest(e) {
             },
             body: JSON.stringify({
                 ajax: true,
-                action: "createLabel",
+                action: "createLabelRequest",
                 data: request
             })
         });

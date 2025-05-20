@@ -68,6 +68,9 @@ class DeleteLabel
             }
         }
 
-        return ['response' => $response];
+        return [
+            'response' => $response,
+            'senderCode' => $this->numericSenderReference,
+        ];
     }
 }

@@ -2,7 +2,7 @@ async function swalWarning(message) {
     return new Promise((resolve, reject) => {
         Swal.fire({
             title: "Warning",
-            text: message,
+            html: message,
             icon: "warning",
             confirmButtonText: "OK",
             confirmButtonColor: "#25b9d7"

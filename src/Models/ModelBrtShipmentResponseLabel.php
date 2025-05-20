@@ -21,6 +21,7 @@
 
 namespace MpSoft\MpBrtApiShipment\Models;
 
+use MpSoft\MpBrtApiShipment\Helpers\DeleteByNumericReference;
 use MpSoft\MpBrtApiShipment\Helpers\GetByNumericReference;
 use setasign\Fpdi\Fpdi;
 
@@ -97,6 +98,11 @@ class ModelBrtShipmentResponseLabel extends \ObjectModel
         $result = (new GetByNumericReference($numericSenderReference, self::$definition['table'], self::$definition['primary']))->run(self::class);
 
         return $result;
+    }
+
+    public static function deleteByNumericSenderReference($numericSenderReference): bool
+    {
+        return (new DeleteByNumericReference($numericSenderReference, self::$definition['table']))->run();
     }
 
     public static function createLabelPdf($idBrtShipmentResponse)

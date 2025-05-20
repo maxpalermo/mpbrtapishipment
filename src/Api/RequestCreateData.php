@@ -226,6 +226,8 @@ class RequestCreateData
 
     public function compareWithDefaultParams()
     {
+        return true;
+
         // Compara l'array
         $request = $this->createRequestParams();
         $default = $this->createDefaultParams();

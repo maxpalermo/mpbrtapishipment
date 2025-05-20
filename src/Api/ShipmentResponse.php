@@ -20,6 +20,7 @@ class ShipmentResponse
     public $consigneeCity;
     public $consigneeProvinceAbbreviation;
     public $consigneeCountryAbbreviationBRT;
+    public $cashOnDelivery;
     public $numberOfParcels;
     public $weightKG;
     public $volumeM3;
@@ -47,6 +48,7 @@ class ShipmentResponse
         $this->consigneeCity = $arr['consigneeCity'] ?? '';
         $this->consigneeProvinceAbbreviation = $arr['consigneeProvinceAbbreviation'] ?? '';
         $this->consigneeCountryAbbreviationBRT = $arr['consigneeCountryAbbreviationBRT'] ?? '';
+        $this->cashOnDelivery = $arr['cashOnDelivery'] ?? 0;
         $this->numberOfParcels = $arr['numberOfParcels'] ?? 0;
         $this->weightKG = $arr['weightKG'] ?? 0;
         $this->volumeM3 = $arr['volumeM3'] ?? 0;
@@ -61,7 +63,7 @@ class ShipmentResponse
         }
     }
 
-    public function getLabels() : array
+    public function getLabels(): array
     {
         return $this->labels;
     }

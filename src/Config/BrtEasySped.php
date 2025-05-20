@@ -662,7 +662,7 @@ class BrtEasySped
                 'end' => 511,
                 'mandatory' => false,
                 'table' => [
-                    '' => 'Italia',
+                    'IT' => 'Italia',
                     'A' => 'Austria',
                     'AND' => 'Andorra',
                     'B' => 'Belgio',

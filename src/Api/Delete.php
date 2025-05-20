@@ -84,6 +84,7 @@ class Delete
             'success' => $httpCode >= 200 && $httpCode < 300,
             'httpCode' => $httpCode,
             'response' => $decoded,
+            'account' => $account,
         ];
     }
 }

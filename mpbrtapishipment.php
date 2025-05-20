@@ -24,7 +24,6 @@ if (!defined('_PS_VERSION_')) {
 
 require_once dirname(__FILE__).'/vendor/autoload.php';
 
-use MpSoft\MpBrtApiShipment\Models\ModelBrtShipmentResponse;
 use PrestaShop\PrestaShop\Adapter\SymfonyContainer;
 use PrestaShop\PrestaShop\Core\Action\ActionsBarButton;
 use PrestaShop\PrestaShop\Core\Grid\Action\Row\Type\LinkRowAction;
@@ -114,33 +113,41 @@ class MpBrtApiShipment extends Module
             && $this->uninstallMenu();
     }
 
+    public function getConfigurationKeys()
+    {
+        return [
+            'BRT_ENVIRONMENT',
+            'BRT_REAL_USERID',
+            'BRT_REAL_PASSWORD',
+            'BRT_SANDBOX_USERID',
+            'BRT_SANDBOX_PASSWORD',
+            'BRT_DEPARTURE_DEPOT',
+            'BRT_EMPLOYEES',
+            'BRT_ORDERSTATE_SHOWBTN',
+            'BRT_ORDERSTATE_AFTERSEND',
+            'BRT_PAYMENT_MODULES_COD',
+            'BRT_LABEL_OUTPUT_TYPE',
+            'BRT_LABEL_BORDER',
+            'BRT_LABEL_BARCODE',
+            'BRT_LABEL_LOGO',
+            'BRT_LABEL_OFFSET_X',
+            'BRT_LABEL_OFFSET_Y',
+            'BRT_ALERT_BY_EMAIL',
+            'BRT_ALERT_BY_SMS',
+            'BRT_PAYMENT_COD',
+            'BRT_IS_LABEL_REQUIRED',
+            'BRT_PORT',
+            'BRT_SERVICE_TYPE',
+            'BRT_NETWORK',
+        ];
+    }
+
     public function getContent()
     {
         $output = '';
         if (Tools::isSubmit('submit_mpbrtapishipment')) {
             // Salva tutti i parametri
-            $keys = [
-                'BRT_ENVIRONMENT',
-                'BRT_REAL_USERID',
-                'BRT_REAL_PASSWORD',
-                'BRT_SANDBOX_USERID',
-                'BRT_SANDBOX_PASSWORD',
-                'BRT_DEPARTURE_DEPOT',
-                'BRT_EMPLOYEES',
-                'BRT_ORDERSTATE_SHOWBTN',
-                'BRT_ORDERSTATE_AFTERSEND',
-                'BRT_PAYMENT_MODULES_COD',
-                'BRT_LABEL_OUTPUT_TYPE',
-                'BRT_LABEL_BORDER',
-                'BRT_LABEL_BARCODE',
-                'BRT_LABEL_LOGO',
-                'BRT_LABEL_OFFSET_X',
-                'BRT_LABEL_OFFSET_Y',
-                'BRT_ALERT_BY_EMAIL',
-                'BRT_ALERT_BY_SMS',
-                'BRT_PAYMENT_COD',
-                'BRT_IS_LABEL_REQUIRED',
-            ];
+            $keys = $this->getConfigurationKeys();
             foreach ($keys as $key) {
                 $val = Tools::getValue($key);
                 if (is_array($val)) {
@@ -252,20 +259,57 @@ class MpBrtApiShipment extends Module
                         'label' => $this->l('Codice Filiale Mittente (departureDepot)'),
                         'name' => 'BRT_DEPARTURE_DEPOT',
                     ],
-                    // Moduli pagamento contrassegno
+                    // Porto
                     [
                         'col' => 6,
                         'type' => 'select',
-                        'label' => $this->l('Moduli pagamento per contrassegno'),
-                        'name' => 'BRT_PAYMENT_MODULES_COD',
-                        'multiple' => true,
+                        'label' => $this->l('Porto'),
+                        'name' => 'BRT_PORT',
                         'class' => 'select2',
                         'options' => [
-                            'query' => $paymentModules,
-                            'id' => 'name',
-                            'name' => 'displayName',
+                            'query' => [
+                                ['id' => 'DAP', 'name' => 'FRANCO'],
+                                ['id' => 'EXW', 'name' => 'ASSEGNATO'],
+                            ],
+                            'id' => 'id',
+                            'name' => 'name',
                         ],
                     ],
+                    // Tipo di servizio
+                    [
+                        'col' => 6,
+                        'type' => 'select',
+                        'label' => $this->l('Tipo di servizio'),
+                        'name' => 'BRT_SERVICE_TYPE',
+                        'class' => 'select2',
+                        'options' => [
+                            'query' => [
+                                ['id' => '', 'name' => 'DEFAULT'],
+                                ['id' => 'E', 'name' => 'PRIORITY'],
+                                ['id' => 'H', 'name' => '10:30'],
+                            ],
+                            'id' => 'id',
+                            'name' => 'name',
+                        ],
+                    ],
+                    // Network estero
+                    [
+                        'col' => 6,
+                        'type' => 'select',
+                        'label' => $this->l('Network estero'),
+                        'name' => 'BRT_NETWORK',
+                        'class' => 'select2',
+                        'options' => [
+                            'query' => [
+                                ['id' => 'D', 'name' => 'DPD'],
+                                ['id' => 'E', 'name' => 'EURO EXPRESS'],
+                                ['id' => 'S', 'name' => 'FED'],
+                            ],
+                            'id' => 'id',
+                            'name' => 'name',
+                        ],
+                    ],
+                    // Moduli pagamento contrassegno
                     [
                         'col' => 6,
                         'type' => 'select',
@@ -385,28 +429,8 @@ class MpBrtApiShipment extends Module
         $helper->show_toolbar = false;
         $helper->submit_action = 'submit_mpbrtapishipment';
         // Precompila valori
-        foreach ([
-            'BRT_ENVIRONMENT',
-            'BRT_REAL_USERID',
-            'BRT_REAL_PASSWORD',
-            'BRT_SANDBOX_USERID',
-            'BRT_SANDBOX_PASSWORD',
-            'BRT_DEPARTURE_DEPOT',
-            'BRT_EMPLOYEES',
-            'BRT_ORDERSTATE_SHOWBTN',
-            'BRT_ORDERSTATE_AFTERSEND',
-            'BRT_PAYMENT_MODULES_COD',
-            'BRT_LABEL_OUTPUT_TYPE',
-            'BRT_LABEL_BORDER',
-            'BRT_LABEL_BARCODE',
-            'BRT_LABEL_LOGO',
-            'BRT_LABEL_OFFSET_X',
-            'BRT_LABEL_OFFSET_Y',
-            'BRT_ALERT_BY_EMAIL',
-            'BRT_ALERT_BY_SMS',
-            'BRT_PAYMENT_COD',
-            'BRT_IS_LABEL_REQUIRED',
-        ] as $key) {
+        $keys = $this->getConfigurationKeys();
+        foreach ($keys as $key) {
             $value = Configuration::get($key);
 
             if (in_array($key, ['BRT_EMPLOYEES', 'BRT_PAYMENT_MODULES_COD'])) {
@@ -523,9 +547,9 @@ class MpBrtApiShipment extends Module
 
         if (preg_match('/AdminOrders/i', $controller) && $id_order) {
             $this->context->controller->addJs([
-                $jsPath.'admin/showBrtLabelForm.js',
-                $jsPath.'admin/labelFormScript.js',
-                $jsPath.'admin/showPrintLabelButton.js',
+                // $jsPath.'admin/showBrtLabelForm.js',
+                // $jsPath.'admin/labelFormScript.js',
+                // $jsPath.'admin/showPrintLabelButton.js',
                 $jsPath.'swal2/sweetalert2.min.js',
                 $jsPath.'swal2/request/SwalConfirm.js',
                 $jsPath.'swal2/request/SwalError.js',
@@ -534,6 +558,7 @@ class MpBrtApiShipment extends Module
                 $jsPath.'swal2/request/SwalNote.js',
                 $jsPath.'swal2/request/SwalSuccess.js',
                 $jsPath.'swal2/request/SwalWarning.js',
+                $jsPath.'admin/MpBrtApiShipment.js',
             ]);
             $this->context->controller->addCSS($jsPath.'swal2/sweetalert2.min.css');
         }
@@ -554,35 +579,32 @@ class MpBrtApiShipment extends Module
 
     public function hookActionGetAdminToolbarButtons(array $params)
     {
-        $controller = $params['controller'];
+        $isAdminOrderController = preg_match('/AdminOrders/i', $params['controller']->controller_name);
         $buttons = $params['toolbar_extra_buttons_collection'];
-        $controller_name = $controller->controller_name ?? '';
         $id_order = (int) Tools::getValue('id_order');
 
-        if (preg_match('/AdminOrders/i', $controller_name) && $id_order) {
-            if (ModelBrtShipmentResponse::exists($id_order)) {
-                $button = new ActionsBarButton(
-                    'btn-danger',
-                    [
-                        'href' => 'javascript:deleteBrtLabelForm('.$id_order.');',
-                        'icon' => 'delete',
-                        'id' => 'btnDeleteBrtLabelForm',
-                        'class' => 'btnDeleteBrtLabelForm',
-                        'data' => [
-                            'action' => 'deleteBrtLabelForm',
-                            'id_order' => $id_order,
-                        ],
+        if ($isAdminOrderController && $id_order) {
+            $button = new ActionsBarButton(
+                'btn-danger',
+                [
+                    'href' => 'javascript:deleteBrtOrderLabel();',
+                    'icon' => 'delete',
+                    'id' => 'btnDeleteBrtOrderLabel',
+                    'class' => 'btnDeleteBrtOrderLabel',
+                    'data' => [
+                        'action' => 'deleteBrtOrderLabel',
+                        'id_order' => $id_order,
                     ],
-                    $this->l('Elimina etichetta BRT')
-                );
+                ],
+                $this->l('Elimina etichetta BRT')
+            );
 
-                $buttons->add($button);
-            }
+            $buttons->add($button);
 
             $button = new ActionsBarButton(
                 'btn-warning',
                 [
-                    'href' => 'javascript:showBrtLabelForm('.$id_order.');',
+                    'href' => 'javascript:showBrtLabelForm();',
                     'icon' => 'bookmark',
                     'id' => 'btnShowBrtLabelForm',
                     'class' => 'btnShowBrtLabelForm',
@@ -713,10 +735,34 @@ class MpBrtApiShipment extends Module
             $script = <<<JS
                 <script type="text/javascript">
                     const ajaxLabelFormController = "{$frontController}";
-                    const orderId = "{$id_order}"
+                    const orderID = {$id_order};
+                    let ApiShipment = null;
                     
+                    function showBrtLabelForm() {
+                        ApiShipment.showStaticVariables();
+                        ApiShipment.showBrtLabelForm();
+                    }
+
+                    async function createLabelRequest() {
+                        ApiShipment.formControllerURL = ajaxLabelFormController;
+                        ApiShipment.showStaticVariables();
+                        await ApiShipment.createLabelRequest();
+                    }
+
+                    async function deleteBrtOrderLabel() {
+                        ApiShipment.showStaticVariables();
+                        await ApiShipment.deleteBrtOrderLabel();
+                    }
+
                     document.addEventListener('DOMContentLoaded', () => {
                         console.log("DOMCONTENT Loaded: BrtApiShipment");
+
+                        ApiShipment = window.MpBrtApiShipment;
+                        ApiShipment.formControllerURL = ajaxLabelFormController;
+                        ApiShipment.orderID = orderID;
+                        ApiShipment.showStaticVariables();
+                        ApiShipment.showPrintLabelButton(orderID);
+                        
                         $(".select2").select2({
                             language: "it",
                             width: '100%'

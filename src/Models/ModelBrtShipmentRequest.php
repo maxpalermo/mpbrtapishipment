@@ -21,6 +21,7 @@
 
 namespace MpSoft\MpBrtApiShipment\Models;
 
+use MpSoft\MpBrtApiShipment\Helpers\DeleteByNumericReference;
 use MpSoft\MpBrtApiShipment\Helpers\GetByNumericReference;
 
 class ModelBrtShipmentRequest extends \ObjectModel
@@ -52,6 +53,28 @@ class ModelBrtShipmentRequest extends \ObjectModel
         ],
     ];
 
+    public static function getNumericSenderReferenceByOrderId($orderId)
+    {
+        $db = \Db::getInstance();
+        $query = new \DbQuery();
+        $query->select('numeric_sender_reference')
+            ->from(self::$definition['table'])
+            ->where('order_id = '.(int) $orderId);
+
+        return (int) $db->getValue($query);
+    }
+
+    public static function getAlphanumericSenderReferenceByOrderId($orderId)
+    {
+        $db = \Db::getInstance();
+        $query = new \DbQuery();
+        $query->select('alphanumeric_sender_reference')
+            ->from(self::$definition['table'])
+            ->where('order_id = '.(int) $orderId);
+
+        return (string) $db->getValue($query);
+    }
+
     public static function getByNumericSenderReference($numericSenderReference): ModelBrtShipmentRequest
     {
         $result = (new GetByNumericReference($numericSenderReference, self::$definition['table'], self::$definition['primary']))->run(self::class);
@@ -64,14 +87,20 @@ class ModelBrtShipmentRequest extends \ObjectModel
 
     public static function getByIdOrder($idOrder): ModelBrtShipmentRequest
     {
-        $db = \Db::getInstance();
-        $query = new \DbQuery();
-        $query->select(self::$definition['primary'])
-            ->from('brt_shipment_request')
-            ->where('order_id = '.(int) $idOrder);
+        $numericSenderReference = self::getNumericSenderReferenceByOrderId($idOrder);
 
-        $result = (int) $db->getValue($query);
+        return self::getByNumericSenderReference($numericSenderReference);
+    }
 
-        return new self($result);
+    public static function deleteByNumericSenderReference($numericSenderReference): bool
+    {
+        return (new DeleteByNumericReference($numericSenderReference, self::$definition['table']))->run();
+    }
+
+    public static function deleteByIdOrder($idOrder): bool
+    {
+        $numericSenderReference = self::getNumericSenderReferenceByOrderId($idOrder);
+
+        return self::deleteByNumericSenderReference($numericSenderReference);
     }
 }

@@ -2,7 +2,7 @@ async function swalInput(message) {
     return new Promise((resolve, reject) => {
         Swal.fire({
             title: "Input",
-            text: message,
+            html: message,
             icon: "question",
             input: "text",
             showCancelButton: true,

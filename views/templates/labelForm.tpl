@@ -103,11 +103,11 @@
                 <div class="brt-form-row">
                     <div class="brt-form-group" style="min-width: 20rem; max-width: 100%">
                         <label for="consigneeCompanyName">Ragione Sociale / Nome *</label>
-                        <input type="text" id="consigneeCompanyName" name="consigneeCompanyName" required value="{if isset($formData.consigneeCompanyName)}{$formData.consigneeCompanyName|escape:'html':'UTF-8'}{/if}">
+                        <input type="text" id="consigneeCompanyName" name="consigneeCompanyName" required value="{if isset($formData.consigneeCompanyName)}{$formData.consigneeCompanyName|upper|escape:'html':'UTF-8'}{/if}">
                     </div>
                     <div class="brt-form-group" style="min-width: 20rem; max-width: 100%">
                         <label for="consigneeAddress">Indirizzo *</label>
-                        <input type="text" id="consigneeAddress" name="consigneeAddress" required value="{if isset($formData.consigneeAddress)}{$formData.consigneeAddress|escape:'html':'UTF-8'}{/if}">
+                        <input type="text" id="consigneeAddress" name="consigneeAddress" required value="{if isset($formData.consigneeAddress)}{$formData.consigneeAddress|upper|escape:'html':'UTF-8'}{/if}">
                     </div>
                     <div class="brt-form-group" style="min-width: 92px; max-width: 92px;">
                         <label for="consigneeZIPCode">CAP *</label>
@@ -115,23 +115,23 @@
                     </div>
                     <div class="brt-form-group" style="min-width: 120px; max-width: 100%;">
                         <label for="consigneeCity">Città *</label>
-                        <input type="text" id="consigneeCity" name="consigneeCity" required value="{if isset($formData.consigneeCity)}{$formData.consigneeCity|escape:'html':'UTF-8'}{/if}">
+                        <input type="text" id="consigneeCity" name="consigneeCity" required value="{if isset($formData.consigneeCity)}{$formData.consigneeCity|upper|escape:'html':'UTF-8'}{/if}">
                     </div>
                     <div class="brt-form-group" style="min-width: 92px; max-width: 92px;">
                         <label for="consigneeProvinceAbbreviation">Provincia *</label>
-                        <input type="text" id="consigneeProvinceAbbreviation" name="consigneeProvinceAbbreviation" maxlength="2" required value="{if isset($formData.consigneeProvinceAbbreviation)}{$formData.consigneeProvinceAbbreviation|escape:'html':'UTF-8'}{/if}">
+                        <input type="text" id="consigneeProvinceAbbreviation" name="consigneeProvinceAbbreviation" maxlength="2" required value="{if isset($formData.consigneeProvinceAbbreviation)}{$formData.consigneeProvinceAbbreviation|upper|escape:'html':'UTF-8'}{/if}">
                     </div>
                     <div class="brt-form-group" style="min-width: 92px; max-width: 92px;">
                         <label for="consigneeCountryAbbreviationISOAlpha2">Nazione *</label>
-                        <input type="text" id="consigneeCountryAbbreviationISOAlpha2" name="consigneeCountryAbbreviationISOAlpha2" maxlength="2" required value="{if isset($formData.consigneeCountryAbbreviationISOAlpha2)}{$formData.consigneeCountryAbbreviationISOAlpha2|escape:'html':'UTF-8'}{/if}">
+                        <input type="text" id="consigneeCountryAbbreviationISOAlpha2" name="consigneeCountryAbbreviationISOAlpha2" maxlength="2" required value="{if isset($formData.consigneeCountryAbbreviationISOAlpha2)}{$formData.consigneeCountryAbbreviationISOAlpha2|upper|escape:'html':'UTF-8'}{/if}">
                     </div>
                     <div class="brt-form-group">
                         <label for="consigneeContactName">Referente</label>
-                        <input type="text" id="consigneeContactName" name="consigneeContactName" value="{if isset($formData.consigneeContactName)}{$formData.consigneeContactName|escape:'html':'UTF-8'}{/if}">
+                        <input type="text" id="consigneeContactName" name="consigneeContactName" value="{if isset($formData.consigneeContactName)}{$formData.consigneeContactName|upper|escape:'html':'UTF-8'}{/if}">
                     </div>
                     <div class="brt-form-group" style="min-width: 250px; max-width: 100%">
                         <label for="consigneeEMail">Email *</label>
-                        <input type="email" id="consigneeEMail" name="consigneeEMail" required value="{if isset($formData.consigneeEMail)}{$formData.consigneeEMail|escape:'html':'UTF-8'}{/if}">
+                        <input type="email" id="consigneeEMail" name="consigneeEMail" required value="{if isset($formData.consigneeEMail)}{$formData.consigneeEMail|lower|escape:'html':'UTF-8'}{/if}">
                     </div>
                     <div class="brt-form-group">
                         <label for="consigneeTelephone">Telefono *</label>
@@ -140,10 +140,6 @@
                     <div class="brt-form-group">
                         <label for="consigneeMobilePhoneNumber">Cellulare</label>
                         <input type="text" id="consigneeMobilePhoneNumber" name="consigneeMobilePhoneNumber" value="{if isset($formData.consigneeMobilePhoneNumber)}{$formData.consigneeMobilePhoneNumber|escape:'html':'UTF-8'}{/if}">
-                    </div>
-                    <div class="brt-form-group">
-                        <label for="consigneeVATNumber">Partita IVA</label>
-                        <input type="text" id="consigneeVATNumber" name="consigneeVATNumber" value="{if isset($formData.consigneeVATNumber)}{$formData.consigneeVATNumber|escape:'html':'UTF-8'}{/if}">
                     </div>
                     <div class="brt-form-group" style="max-width: 16rem;">
                         <label for="network">Network</label>
@@ -171,41 +167,46 @@
                 <h3>Dati Spedizione</h3>
             </div>
             <div class="card-body">
+                <div class="order-data-container no-edit">
+                    <div class="brt-form-row">
+                        <div class="brt-form-group" style="min-width: 15rem; max-width: 15rem">
+                            <label for="numericSenderReference">ID numerico *</label>
+                            <input type="number" step="0.01" min="0.01" id="numericSenderReference" name="numericSenderReference" required value="{if isset($formData.numericSenderReference)}{$formData.numericSenderReference|escape:'html':'UTF-8'}{/if}">
+                        </div>
+                        <div class="brt-form-group" style="min-width: 15rem; max-width: 15rem">
+                            <label for="alphanumericSenderReference">ID alfanumerico</label>
+                            <input type="text" id="alphanumericSenderReference" name="alphanumericSenderReference" value="{if isset($formData.alphanumericSenderReference)}{$formData.alphanumericSenderReference|escape:'html':'UTF-8'}{/if}">
+                        </div>
+                        <div class="brt-form-group" style="min-width: 8rem; max-width: auto;">
+                            <label for="declaredParcelValue">Valore dichiarato (€)</label>
+                            <input type="number" step="0.01" min="0" id="declaredParcelValue" name="declaredParcelValue" value="{if isset($formData.declaredParcelValue)}{$formData.declaredParcelValue|escape:'html':'UTF-8'}{/if}">
+                        </div>
+                        <div class="brt-form-group" style="min-width: 8rem; max-width: auto;">
+                            <label for="insuranceAmount">Assicurazione (€)</label>
+                            <input type="number" step="0.01" min="0" id="insuranceAmount" name="insuranceAmount" value="{if isset($formData.insuranceAmount)}{$formData.insuranceAmount|escape:'html':'UTF-8'}{/if}">
+                        </div>
+                    </div>
+                    <div class="brt-form-row">
+                        <div class="brt-form-group" style="max-width: 20%">
+                            <label for="serviceType">Tipo Servizio *</label>
+                            <select id="serviceType" name="serviceType" required>
+                                <option value="">Standard</option>
+                                <option value="E" {if isset($formData.serviceType) && $formData.serviceType == 'E'}selected{/if}>Priority</option>
+                                <option value="H" {if isset($formData.serviceType) && $formData.serviceType == 'P'}selected{/if}>10:30</option>
+                            </select>
+                        </div>
+                        <div class="brt-form-group" style="flex-grow: 1; max-width: 80%;">
+                            <label for="notes">Note di Spedizione</label>
+                            <input type="text" id="notes" name="notes" {if isset($formData.deliveryNote)}value="{$formData.deliveryNote|escape:'html':'UTF-8'}" {/if}>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="brt-form-row">
-                    <div class="brt-form-group" style="min-width: 15rem; max-width: 15rem">
-                        <label for="numericSenderReference">ID numerico *</label>
-                        <input type="number" step="0.01" min="0.01" id="numericSenderReference" name="numericSenderReference" required value="{if isset($formData.numericSenderReference)}{$formData.numericSenderReference|escape:'html':'UTF-8'}{/if}">
-                    </div>
-                    <div class="brt-form-group" style="min-width: 15rem; max-width: 15rem">
-                        <label for="alphanumericSenderReference">ID alfanumerico</label>
-                        <input type="text" id="alphanumericSenderReference" name="alphanumericSenderReference" value="{if isset($formData.alphanumericSenderReference)}{$formData.alphanumericSenderReference|escape:'html':'UTF-8'}{/if}">
-                    </div>
-                    <div class="brt-form-group" style="min-width: 8rem; max-width: auto;">
-                        <label for="declaredParcelValue">Valore dichiarato (€)</label>
-                        <input type="number" step="0.01" min="0" id="declaredParcelValue" name="declaredParcelValue" value="{if isset($formData.declaredParcelValue)}{$formData.declaredParcelValue|escape:'html':'UTF-8'}{/if}">
-                    </div>
-                    <div class="brt-form-group" style="min-width: 8rem; max-width: auto;">
-                        <label for="insuranceAmount">Assicurazione (€)</label>
-                        <input type="number" step="0.01" min="0" id="insuranceAmount" name="insuranceAmount" value="{if isset($formData.insuranceAmount)}{$formData.insuranceAmount|escape:'html':'UTF-8'}{/if}">
-                    </div>
-                    <div class="brt-form-group">
-                        <label for="serviceType">Tipo Servizio *</label>
-                        <select id="serviceType" name="serviceType" required>
-                            <option value="">-- Seleziona --</option>
-                            <option value="EXP" {if isset($formData.serviceType) && $formData.serviceType == 'EXP'}selected{/if}>Express</option>
-                            <option value="PRI" {if isset($formData.serviceType) && $formData.serviceType == 'PRI'}selected{/if}>Priority</option>
-                            <option value="10" {if isset($formData.serviceType) && $formData.serviceType == '10'}selected{/if}>10:00</option>
-                            <option value="12" {if isset($formData.serviceType) && $formData.serviceType == '12'}selected{/if}>12:00</option>
-                            <option value="SAT" {if isset($formData.serviceType) && $formData.serviceType == 'SAT'}selected{/if}>Sabato</option>
-                        </select>
-                    </div>
-                    <div class="brt-form-group" style="flex-grow: 1; max-width: auto;">
-                        <label for="notes">Note di Spedizione</label>
-                        <input type="text" id="notes" name="notes">
-                    </div>
                     <div class="section-measurements">
                         <div class="brt-form-row">
-                            <h3>Colli</h3>
+                            <hr>
+                            <legend>Colli</legend>
                             <table class="table table-light table-bordered" id="table-brt-measure">
                                 <thead class="thead-light">
                                     <tr>
@@ -250,69 +251,74 @@
                 <h3>Opzioni Avanzate</h3>
             </div>
             <div class="card-body">
-                <div class="brt-form-row">
-                    <div class="brt-form-group">
-                        <label for="isCODMandatory">Contrassegno?</label>
-                        <div class="text-center">
-                            <div class="ps-switch ps-switch-lg ps-switch-nolabel ps-switch-center ps-togglable-row">
-                                <input type="radio" name="isCODMandatory" id="input-false-isCODMandatory" value="0" {if $formData.isCODMandatory == 0}checked{/if}>
-                                <label for="input-false-isCODMandatory">Off</label>
-                                <input type="radio" name="isCODMandatory" id="input-true-isCODMandatory" value="1" {if $formData.isCODMandatory == 1}checked{/if}>
-                                <label for="input-true-isCODMandatory">On</label>
-                                <span class="slide-button"></span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="brt-form-group">
-                        <label for="cashOnDelivery">Importo Contrassegno (€)</label>
-                        <input type="number" step="0.01" min="0" id="cashOnDelivery" name="cashOnDelivery" value="{if isset($formData.cashOnDelivery)}{$formData.cashOnDelivery|escape:'html':'UTF-8'}{/if}">
-                    </div>
-                    <div class="brt-form-group">
-                        <label for="codPaymentType">Tipo Pagamento Contrassegno</label>
-                        <select id="codPaymentType" name="codPaymentType" value="{if isset($formData.codPaymentType)}{$formData.codPaymentType|escape:'html':'UTF-8'}{/if}">
-                            <option value="">ACCETTARE CONTANTE</option>
-                            <option value="BM">ACCETTARE ASSEGNO BANCARIO INTESTATO ALLA MITTENTE</option>
-                            <option value="CM">ACCETTARE ASSEGNO CIRCOLARE INTESTATO ALLA MITTENTE</option>
-                            <option value="BB">ACCETTARE ASSEGNO BANCARIO INTESTATO CORRIERE CON MANLEVA</option>
-                            <option value="OM">ACCETTARE ASSEGNO INTESTATO AL MITTENTE ORIGINALE</option>
-                            <option value="OC">ACCETTARE ASSEGNO CIRCOLARE INTESTATO AL MITTENTE ORIGINALE</option>
-                        </select>
-                    </div>
-                    <div class="brt-form-group">
-                        <label for="parcelsHandlingCode">Gestione colli</label>
-                        <input type="text" id="parcelsHandlingCode" name="parcelsHandlingCode">
-                    </div>
-                    <div class="brt-form-group">
-                        <label for="particularitiesDeliveryManagementCode">Particolarità consegna</label>
-                        <input type="text" id="particularitiesDeliveryManagementCode" name="particularitiesDeliveryManagementCode">
-                    </div>
-                    <div class="brt-form-group">
-                        <label for="particularitiesHoldOnStockManagementCode">Particolarità giacenza</label>
-                        <input type="text" id="particularitiesHoldOnStockManagementCode" name="particularitiesHoldOnStockManagementCode">
-                    </div>
-                    <div class="brt-form-row" style="max-width: auto; border: 1px solid #ccc; padding: 10px;">
-                        <input type="hidden" id="isAlertRequired" name="isAlertRequired" value="0">
-                        <div class="brt-form-group">
-                            <label>Notifica via EMAIL</label>
+                <div class="order-data-container no-edit">
+                    <div class="brt-form-row">
+                        <div class="brt-form-group" style="max-width: 130px;">
+                            <label for="isCODMandatory">Contrassegno?</label>
                             <div class="text-center">
                                 <div class="ps-switch ps-switch-lg ps-switch-nolabel ps-switch-center ps-togglable-row">
-                                    <input type="radio" name="notifyByEmail" id="input-false-notifyByEmail" value="0" {if $formData.notifyByEmail == 0}checked{/if}>
-                                    <label for="input-false-notifyByEmail">Off</label>
-                                    <input type="radio" name="notifyByEmail" id="input-true-notifyByEmail" value="1" {if $formData.notifyByEmail == 1}checked{/if}>
-                                    <label for="input-true-notifyByEmail">On</label>
+                                    <input type="radio" name="isCODMandatory" id="input-false-isCODMandatory" value="0" {if $formData.isCODMandatory == 0}checked{/if}>
+                                    <label for="input-false-isCODMandatory">Off</label>
+                                    <input type="radio" name="isCODMandatory" id="input-true-isCODMandatory" value="1" {if $formData.isCODMandatory == 1}checked{/if}>
+                                    <label for="input-true-isCODMandatory">On</label>
                                     <span class="slide-button"></span>
                                 </div>
                             </div>
                         </div>
                         <div class="brt-form-group">
-                            <label>Notifica via SMS</label>
-                            <div class="text-center">
-                                <div class="ps-switch ps-switch-lg ps-switch-nolabel ps-switch-center ps-togglable-row">
-                                    <input type="radio" name="notifyBySms" id="input-false-notifyBySms" value="0" {if $formData.notifyBySms == 0}checked{/if}>
-                                    <label for="input-false-notifyBySms">Off</label>
-                                    <input type="radio" name="notifyBySms" id="input-true-notifyBySms" value="1" {if $formData.notifyBySms == 1}checked{/if}>
-                                    <label for="input-true-notifyBySms">On</label>
-                                    <span class="slide-button"></span>
+                            <label for="cashOnDeliveryCurrency">Importo Contrassegno (€)</label>
+                            <input type="hidden" id="cashOnDelivery" name="cashOnDelivery" value="{if isset($formData.cashOnDelivery)}{(float)$formData.cashOnDelivery}{/if}">
+                            <input type="number" step="0.01" min="0" id="cashOnDeliveryCurrency" name="cashOnDeliveryCurrency" value="{if isset($formData.cashOnDeliveryCurrency)}{$formData.cashOnDeliveryCurrency|escape:'html':'UTF-8'}{/if}">
+                        </div>
+                        <div class="brt-form-group">
+                            <label for="codPaymentType">Tipo Pagamento Contrassegno</label>
+                            <select id="codPaymentType" name="codPaymentType" value="{if isset($formData.codPaymentType)}{$formData.codPaymentType|escape:'html':'UTF-8'}{/if}">
+                                <option value="">ACCETTARE CONTANTE</option>
+                                <option value="BM">ACCETTARE ASSEGNO BANCARIO INTESTATO AL MITTENTE</option>
+                                <option value="CM">ACCETTARE ASSEGNO CIRCOLARE INTESTATO AL MITTENTE</option>
+                                <option value="BB">ACCETTARE ASSEGNO BANCARIO INTESTATO CORRIERE CON MANLEVA</option>
+                                <option value="OM">ACCETTARE ASSEGNO INTESTATO AL MITTENTE ORIGINALE</option>
+                                <option value="OC">ACCETTARE ASSEGNO CIRCOLARE INTESTATO AL MITTENTE ORIGINALE</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="brt-form-row">
+                        <div class="brt-form-group">
+                            <label for="parcelsHandlingCode">Gestione colli</label>
+                            <input type="text" id="parcelsHandlingCode" name="parcelsHandlingCode">
+                        </div>
+                        <div class="brt-form-group">
+                            <label for="particularitiesDeliveryManagementCode">Particolarità consegna</label>
+                            <input type="text" id="particularitiesDeliveryManagementCode" name="particularitiesDeliveryManagementCode">
+                        </div>
+                        <div class="brt-form-group">
+                            <label for="particularitiesHoldOnStockManagementCode">Particolarità giacenza</label>
+                            <input type="text" id="particularitiesHoldOnStockManagementCode" name="particularitiesHoldOnStockManagementCode">
+                        </div>
+                        <div class="brt-form-row" style="max-width: auto; border: 1px solid #ccc; padding: 10px;">
+                            <input type="hidden" id="isAlertRequired" name="isAlertRequired" value="0">
+                            <div class="brt-form-group">
+                                <label>Notifica via EMAIL</label>
+                                <div class="text-center">
+                                    <div class="ps-switch ps-switch-lg ps-switch-nolabel ps-switch-center ps-togglable-row">
+                                        <input type="radio" name="notifyByEmail" id="input-false-notifyByEmail" value="0" {if $formData.notifyByEmail == 0}checked{/if}>
+                                        <label for="input-false-notifyByEmail">Off</label>
+                                        <input type="radio" name="notifyByEmail" id="input-true-notifyByEmail" value="1" {if $formData.notifyByEmail == 1}checked{/if}>
+                                        <label for="input-true-notifyByEmail">On</label>
+                                        <span class="slide-button"></span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="brt-form-group">
+                                <label>Notifica via SMS</label>
+                                <div class="text-center">
+                                    <div class="ps-switch ps-switch-lg ps-switch-nolabel ps-switch-center ps-togglable-row">
+                                        <input type="radio" name="notifyBySms" id="input-false-notifyBySms" value="0" {if $formData.notifyBySms == 0}checked{/if}>
+                                        <label for="input-false-notifyBySms">Off</label>
+                                        <input type="radio" name="notifyBySms" id="input-true-notifyBySms" value="1" {if $formData.notifyBySms == 1}checked{/if}>
+                                        <label for="input-true-notifyBySms">On</label>
+                                        <span class="slide-button"></span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -328,10 +334,6 @@
         </div>
         <div class="card-body">
             <div class="brt-form-row">
-                <div class="brt-form-group">
-                    <label for="consigneeCountryISOAlpha2">Nazione destinatario (ISO2)</label>
-                    <input type="text" id="consigneeCountryISOAlpha2" name="consigneeCountryISOAlpha2" maxlength="2">
-                </div>
                 <div class="brt-form-group">
                     <label for="consigneeVATNumber">P.IVA destinatario</label>
                     <input type="text" id="consigneeVATNumber" name="consigneeVATNumber" maxlength="16">
@@ -479,35 +481,30 @@
         Mostra/Nascondi altri dati avanzati
     </button>
     <div class="brt-form-actions">
-        <button type="button" class="swal2-confirm swal2-styled" style="background:#007bff;" onclick="createLabelRequest(event);">Crea Etichetta</button>
+        <button type="button" class="swal2-confirm swal2-styled" style="background:#007bff;" onclick="createLabelRequest();">Crea Etichetta</button>
         <button type="button" class="swal2-cancel swal2-styled" style="background:#aaa;" onclick="Swal.close()">Annulla</button>
     </div>
+
+    <template id="table-row">
+        <tr>
+            <th><input type="text" class="form-control text-right td-length" name="length" id="length" value="0" min="0" required></th>
+            <th><input type="text" class="form-control text-right td-width" name="width" id="width" value="0" min="0" required></th>
+            <th><input type="text" class="form-control text-right td-height" name="height" id="height" value="0" min="0" required></th>
+            <th><input type="text" class="form-control text-right td-volume" name="volume" id="volume" value="0" min="0" required readonly></th>
+            <th><input type="text" class="form-control text-right td-weight" name="weight" id="weight" value="0" min="0" required></th>
+            <th>
+                <div class="btn-group text-center" role="group" aria-label="Button group">
+                    <button type="button" class="btn btn-info" name="addParcels" title="Aggiungi collo"><i class="material-icons">add</i></button>
+                    <button type="button" class="btn btn-danger" name="deleteParcels" title="Rimuovi collo"><i class="material-icons">delete</i></button>
+                </div>
+            </th>
+        </tr>
+    </template>
+
+    <script type="text/javascript">
+        const formData = {
+            orderId: "{$form.orderId}",
+            parcels: {$form.parcels|@json_encode nofilter}
+        };
+    </script>
 </form>
-
-<script type="text/javascript">
-    const id_order = {$formData.id_order};
-    const initialParcels = {$formData.parcels|@json_encode nofilter};
-    document.addEventListener("DOMContentLoaded", function() {
-        // Dispatch custom event when BRT label form is loaded
-        console.log("BRT label form loaded");
-        bindBrtLabelEvents();
-    });
-</script>
-
-
-
-<template id="table-row">
-    <tr>
-        <th><input type="text" class="form-control text-right td-length" name="length" id="length" value="0" min="0" required></th>
-        <th><input type="text" class="form-control text-right td-width" name="width" id="width" value="0" min="0" required></th>
-        <th><input type="text" class="form-control text-right td-height" name="height" id="height" value="0" min="0" required></th>
-        <th><input type="text" class="form-control text-right td-volume" name="volume" id="volume" value="0" min="0" required readonly></th>
-        <th><input type="text" class="form-control text-right td-weight" name="weight" id="weight" value="0" min="0" required></th>
-        <th>
-            <div class="btn-group text-center" role="group" aria-label="Button group">
-                <button type="button" class="btn btn-info" name="addParcels" title="Aggiungi collo"><i class="material-icons">add</i></button>
-                <button type="button" class="btn btn-danger" name="deleteParcels" title="Rimuovi collo"><i class="material-icons">delete</i></button>
-            </div>
-        </th>
-    </tr>
-</template>

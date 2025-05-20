@@ -51,7 +51,7 @@ class ModelBrtShipmentBordero extends \ObjectModel
             'bordero_date' => ['type' => self::TYPE_DATE, 'validate' => 'isDate'],
             'bordero_status' => ['type' => self::TYPE_INT, 'validate' => 'isUnsignedInt'],
             'printed' => ['type' => self::TYPE_BOOL, 'validate' => 'isBool', 'required' => false],
-            'printed_date' => ['type' => self::TYPE_DATE, 'validate' => 'isDate', 'required' => false],
+            'printed_date' => ['type' => self::TYPE_DATE, 'validate' => 'isDateFormat', 'required' => false],
             'id_employee' => ['type' => self::TYPE_INT, 'validate' => 'isUnsignedId', 'required' => false],
             'date_add' => ['type' => self::TYPE_DATE, 'validate' => 'isDate', 'required' => true],
             'date_upd' => ['type' => self::TYPE_DATE, 'validate' => 'isDateFormat', 'required' => false],

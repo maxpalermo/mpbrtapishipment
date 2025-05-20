@@ -21,6 +21,7 @@
 
 namespace MpSoft\MpBrtApiShipment\Models;
 
+use MpSoft\MpBrtApiShipment\Helpers\DeleteByNumericReference;
 use MpSoft\MpBrtApiShipment\Helpers\GetByNumericReference;
 
 class ModelBrtShipmentResponse extends \ObjectModel
@@ -104,5 +105,10 @@ class ModelBrtShipmentResponse extends \ObjectModel
         }
 
         return new self();
+    }
+
+    public static function deleteByNumericSenderReference($numericSenderReference): bool
+    {
+        return (new DeleteByNumericReference($numericSenderReference, self::$definition['table']))->run();
     }
 }

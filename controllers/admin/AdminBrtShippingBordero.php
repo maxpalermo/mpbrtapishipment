@@ -170,6 +170,12 @@ class AdminBrtShippingBorderoController extends ModuleAdminController
             'icon' => 'icon-trash',
             'class' => 'delete',
         ];
+        $this->page_header_toolbar_btn['newLabel'] = [
+            'href' => 'javascript:showBrtLabelDialog();',
+            'desc' => $this->trans('Nuova Etichetta', [], 'Admin.Actions'),
+            'icon' => 'icon-plus',
+            'class' => 'add',
+        ];
     }
 
     public function setMedia($isNewTheme = false)
@@ -179,27 +185,67 @@ class AdminBrtShippingBorderoController extends ModuleAdminController
         $path = _PS_MODULE_DIR_.$this->module->name.'/views/';
 
         $this->addJS([
-            $path.'js/admin/AdminScripts.js',
+            'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js',
+            $path.'js/admin/FormComponentsArray.js',
+            $path.'js/admin/BrtLabelFormClass.js',
+            $path.'js/admin/TableColli.js',
             $path.'js/swal2/sweetalert2.all.min.js',
             $path.'js/swal2/request/SwalConfirm.js',
             $path.'js/swal2/request/SwalError.js',
-            $path.'js/swal2/request/SwalInput.js',
-            $path.'js/swal2/request/SwalLoading.js',
-            $path.'js/swal2/request/SwalNote.js',
             $path.'js/swal2/request/SwalSuccess.js',
             $path.'js/swal2/request/SwalWarning.js',
+            $path.'js/admin/MpBrtApiShipment.js',
         ], true);
         $this->addCSS([
             $path.'js/swal2/sweetalert2.min.css',
+            'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
+            'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css',
+            $path.'style.css',
         ], 'all', 1001, true);
     }
 
     public function initContent()
     {
         $controllerURL = $this->context->link->getAdminLink($this->controller_name);
+
+        $frontController = $this->context->link->getModuleLink($this->module->name, 'AjaxLabelForm');
+
         $script = <<<JS
             <script type="text/javascript">
-                var controllerURL = '{$controllerURL}';
+                async function showDeleteBrtLabel() {
+                    ApiShipmentJs.formControllerURL = MpBrtApiShipmentControllerURL;
+                    ApiShipmentJs.orderID = 0
+                    ApiShipmentJs.showDeleteBrtLabel();
+                }
+                async function showBrtLabelDialog() {
+                    const brtLabelForm = new window.BrtLabelForm("{$frontController}");
+                    await brtLabelForm.show();
+                }
+                async function createLabelRequest() {
+                    ApiShipmentJs.formControllerURL = MpBrtApiShipmentFrontControllerURL;
+                    ApiShipmentJs.showStaticVariables();
+                    await ApiShipmentJs.createLabelRequest();
+                }
+                async function showModalColli() {
+                    const tableColli = new TableColli();
+                    await tableColli.showFormColli();
+                }
+                
+                (function() {
+                    if (document.readyState === 'loading') {
+                        console.log('DOMContentLoaded');
+                        document.addEventListener('DOMContentLoaded', main);
+                    } else {
+                        console.log('Firing main()');
+                        
+                        main();
+                    }
+                    function main() {
+                        const MpBrtApiShipmentControllerURL = "{$controllerURL}";
+                        const MpBrtApiShipmentFrontControllerURL = "{$frontController}";
+                        const ApiShipmentJs = window.MpBrtApiShipment;
+                    }
+                })();
             </script>
         JS;
 
@@ -335,13 +381,49 @@ class AdminBrtShippingBorderoController extends ModuleAdminController
         return $result;
     }
 
-    public function ajaxProcessDeleteLabel()
+    public function ajaxProcessDeleteLabel($params)
     {
-        $numericSenderReference = (int) Tools::getValue('numericSenderReference');
-        $alphanumericSenderReference = (string) Tools::getValue('alphanumericSenderReference');
+        $numericSenderReference = (int) ($params['numericSenderReference'] ?? 0);
+        $alphanumericSenderReference = (string) ($params['alphanumericSenderReference'] ?? '');
+        $result = false;
+        $message = '';
+        $account = null;
+        $deleteResponse = (new DeleteLabel($numericSenderReference, $alphanumericSenderReference))->run();
 
-        $response = (new DeleteLabel($numericSenderReference, $alphanumericSenderReference))->run();
-        $this->sendAjaxResponse($response);
+        if (is_array($deleteResponse)) {
+            $account = $deleteResponse['response']['account'];
+            $deleteResponse = reset($deleteResponse);
+            if (isset($deleteResponse['response']['deleteResponse']['executionMessage'])) {
+                $executionMessage = ExecutionMessage::fromArray($deleteResponse['response']['deleteResponse']['executionMessage']);
+                if (0 == $executionMessage->code) {
+                    $result = true;
+                } else {
+                    $result = false;
+                }
+                $message = $executionMessage->toMsgError();
+            } else {
+                $result = false;
+                $message = $this->module->l('Impossibile cancellare il segnacollo. Dati non validi.');
+            }
+        } else {
+            $result = false;
+            $message = $this->module->l('Impossibile cancellare il segnacollo. Dati non validi.');
+        }
+
+        $deleteData = <<<DELETE_DATA
+            <div class="alert alert-warning">
+                <p>Numeric Sender Reference: <strong>{$numericSenderReference}</strong></p>
+                <p>Alphanumeric Sender Reference: <strong>{$alphanumericSenderReference}</strong></p>
+                <p>Sender Code: <strong>{$account->userID}</strong></p>
+            </div>
+        DELETE_DATA;
+
+        $message = $deleteData.$message;
+
+        $this->sendAjaxResponse([
+            'success' => $result,
+            'message' => $message,
+        ]);
     }
 
     protected function sendAjaxResponse($data)

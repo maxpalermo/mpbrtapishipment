@@ -35,9 +35,27 @@ class Create
     {
         $numericSenderReference = $shipmentRequest->createData['numericSenderReference'] ?? 0;
         $alphanumericSenderReference = $shipmentRequest->createData['alphanumericSenderReference'] ?? '';
+        $cashOnDelivery = (float) ($shipmentRequest->createData['cashOnDelivery'] ?? 0);
 
         $payload = $shipmentRequest->toArray();
         $response = self::callApi($payload);
+        $httpCode = $response['httpcode'] ?? 0;
+
+        $error = '';
+        if (500 == $httpCode) {
+            $error = self::extractError($response['error'] ?? '');
+
+            $shipmentResponse = new ShipmentResponse([
+                'executionMessage' => [
+                    'code' => -999,
+                    'severity' => 'ERROR',
+                    'codeDesc' => 'Errore nella creazione della spedizione',
+                    'message' => $error,
+                ],
+            ]);
+
+            return $shipmentResponse;
+        }
 
         // Interpreta la risposta come ShipmentResponse
         $shipmentResponse = null;
@@ -62,6 +80,7 @@ class Create
                 $modelResponse->consignee_city = $shipmentResponse->consigneeCity;
                 $modelResponse->consignee_province_abbreviation = $shipmentResponse->consigneeProvinceAbbreviation;
                 $modelResponse->consignee_country_abbreviation_brt = $shipmentResponse->consigneeCountryAbbreviationBRT;
+                $modelResponse->cash_on_delivery = $cashOnDelivery;
                 $modelResponse->number_of_parcels = $shipmentResponse->numberOfParcels;
                 $modelResponse->weight_kg = $shipmentResponse->weightKG;
                 $modelResponse->volume_m3 = $shipmentResponse->volumeM3;
@@ -93,18 +112,44 @@ class Create
                 }
             }
         } else {
+            if (is_array($response) || is_object($response)) {
+                $response = json_encode($response);
+            }
             // Risposta di errore generica
             $shipmentResponse = new ShipmentResponse([
                 'executionMessage' => [
                     'code' => $response['data']['executionMessage']['code'] ?? -999,
                     'severity' => 'ERROR',
-                    'codeDesc' => 'NO RESPONSE',
+                    'codeDesc' => $response,
                     'message' => $response['error'] ?? 'Errore sconosciuto',
                 ],
             ]);
         }
 
         return $shipmentResponse;
+    }
+
+    protected static function extractError($response)
+    {
+        // 1. Cerca la sezione <div id="code">
+        if (preg_match('/<div id="code">(.*?)<\/div>/is', $response, $matches)) {
+            $codeBlock = strip_tags($matches[1]);
+            // 2. Trova la prima riga significativa (Exception o Unrecognized)
+            if (preg_match('/((Exception|Unrecognized).*?)(\n|$)/', $codeBlock, $errMatch)) {
+                return trim($errMatch[1]);
+            }
+
+            // Se non trova, restituisci tutto il blocco code
+            return trim($codeBlock);
+        }
+        // 3. Fallback: rimuovi html e cerca la riga con Exception
+        $plain = strip_tags($response);
+        if (preg_match('/((Exception|Unrecognized).*?)(\n|$)/', $plain, $errMatch)) {
+            return trim($errMatch[1]);
+        }
+
+        // 4. Fallback generico
+        return 'Errore non identificato';
     }
 
     /**
@@ -155,6 +200,13 @@ class Create
                 'data' => $data,
             ];
         } else {
+            if (is_array($result) || is_object($result) && empty($error)) {
+                $error = json_encode($result);
+            }
+            if (empty($error) && is_string($result)) {
+                $error = $result;
+            }
+
             return [
                 'success' => false,
                 'error' => $error,

@@ -3,6 +3,7 @@
 use MpSoft\MpBrtApiShipment\Api\ExecutionMessage;
 use MpSoft\MpBrtApiShipment\Models\ModelBrtShipmentBordero;
 use MpSoft\MpBrtApiShipment\Models\ModelBrtShipmentLabelWeight;
+use MpSoft\MpBrtApiShipment\Models\ModelBrtShipmentRequest;
 use MpSoft\MpBrtApiShipment\Models\ModelBrtShipmentResponse;
 
 /**
@@ -47,67 +48,64 @@ class MpBrtApiShipmentAjaxLabelFormModuleFrontController extends ModuleFrontCont
         header('Content-Type: application/json');
         $labelShown = false;
         $message = '';
+        $orderId = (int) ($params['orderId'] ?? 0);
+        $numericSenderReference = (int) ($params['numericSenderReference'] ?? 0);
 
-        if (!isset($params['id_order']) || !is_numeric($params['id_order'])) {
+        if (!$numericSenderReference && !$orderId) {
             http_response_code(400);
 
-            return ['success' => false, 'message' => 'ID ordine mancante o non valido.'];
+            return [
+                'success' => false,
+                'message' => 'ID ordine e Riferimento numerico mancanti o non validi.',
+                'numericSenderReference' => $numericSenderReference,
+                'orderId' => $orderId,
+            ];
         }
 
-        $id_order = (int) $params['id_order'];
-        $shipmentsRequestModel = MpSoft\MpBrtApiShipment\Models\ModelBrtShipmentRequest::getByIdOrder($id_order);
+        if (!$numericSenderReference && $orderId) {
+            $numericSenderReference = ModelBrtShipmentRequest::getNumericSenderReferenceByOrderId($orderId);
+        }
+
+        $shipmentsRequestModel = ModelBrtShipmentRequest::getByNumericSenderReference($numericSenderReference);
         if (Validate::isLoadedObject($shipmentsRequestModel)) {
             $labelShown = true;
         }
 
-        return ['success' => true, 'labelShown' => $labelShown, 'message' => $message];
+        return [
+            'success' => true,
+            'labelShown' => $labelShown,
+            'message' => $message,
+            'numericSenderReference' => $numericSenderReference,
+            'orderId' => $orderId,
+        ];
     }
 
-    public function displayAjaxDeleteLabel($params = null)
+    public function displayAjaxDeleteBrtOrderLabel($params = null)
     {
         header('Content-Type: application/json');
-        $labelDeleted = false;
         $message = '';
 
         if (isset($params['numericSenderReference']) && isset($params['alphanumericSenderReference'])) {
             $numericSenderReference = (int) $params['numericSenderReference'];
             $alphanumericSenderReference = (string) $params['alphanumericSenderReference'];
-            $response = $this->apiRequestDelete($numericSenderReference, $alphanumericSenderReference);
+        } elseif (isset($params['orderID']) && is_numeric($params['orderID'])) {
+            $id_order = (int) $params['orderID'];
+            $numericSenderReference = ModelBrtShipmentRequest::getNumericSenderReferenceByOrderId($id_order);
+            $alphanumericSenderReference = ModelBrtShipmentRequest::getAlphanumericSenderReferenceByOrderId($id_order);
 
-            $labelDeleted = $this->checkResponse($response, $message);
-        }
-
-        if (!isset($params['id_order']) || !is_numeric($params['id_order'])) {
-            http_response_code(400);
-
-            return ['success' => false, 'message' => 'ID ordine mancante o non valido.'];
-        }
-
-        $id_order = (int) $params['id_order'];
-        $this->deleteLabelReference($id_order);
-
-        if (!$labelDeleted) {
-            $order = new Order($id_order);
-            if (!Validate::isLoadedObject($order)) {
-                http_response_code(404);
-
-                return ['success' => false, 'message' => 'Richiesta non trovata.'];
+            if (!$numericSenderReference || !$alphanumericSenderReference) {
+                // Tento con i dati di default dell'ordine
+                $order = new Order($id_order);
+                $numericSenderReference = $order->id;
+                $alphanumericSenderReference = $order->reference;
             }
-
-            $numericSenderReference = $order->id;
-            $alphanumericSenderReference = $order->reference;
-            $response = $this->apiRequestDelete($numericSenderReference, $alphanumericSenderReference);
-
-            $labelDeleted = $this->checkResponse($response, $message);
-            if (!$labelDeleted) {
-                return [
-                    'success' => false,
-                    'message' => $message,
-                ];
-            }
+        } else {
+            return ['success' => false, 'message' => 'Dati non validi.'];
         }
 
-        return ['success' => true, 'message' => 'Richiesta e label eliminate con successo.'];
+        $message = $this->deleteLabelByNumericSenderReference($numericSenderReference, $alphanumericSenderReference);
+
+        return ['success' => true === $message, 'message' => $message];
     }
 
     protected function checkResponse($response, &$message)
@@ -136,33 +134,49 @@ class MpBrtApiShipmentAjaxLabelFormModuleFrontController extends ModuleFrontCont
         return $response;
     }
 
-    protected function deleteLabelReference($id_order)
+    protected function deleteLabelByNumericSenderReference($numericSenderReference, $alphanumericSenderReference)
     {
-        // Prelevo NumericReference e alphaNumericReference
-        $shipmentRequestModel = MpSoft\MpBrtApiShipment\Models\ModelBrtShipmentRequest::getByIdOrder($id_order);
-        $data_json = json_decode($shipmentRequestModel->create_data_json, true);
-        if (is_array($data_json)) {
-            $numericSenderReference = $data_json['numericSenderReference'];
-            $alphanumericSenderReference = $data_json['alphanumericSenderReference'];
-        }
+        $message = '';
+
+        // Rimuovo l'etichetta dal server
+        $response = $this->apiRequestDelete($numericSenderReference, $alphanumericSenderReference);
+        $this->checkResponse($response, $message);
         // 1. Rimuovi la richiesta
+        $shipmentRequestModel = ModelBrtShipmentRequest::getByNumericSenderReference($numericSenderReference);
         if (Validate::isLoadedObject($shipmentRequestModel)) {
             $shipmentRequestModel->delete();
         }
         // 2. Rimuovi la Response
         $shipmentResponseModel = ModelBrtShipmentResponse::getByNumericSenderReference($numericSenderReference);
         if (Validate::isLoadedObject($shipmentResponseModel)) {
-            $shipmentResponseId = (int) $shipmentResponseModel->id;
             $shipmentResponseModel->delete();
+        }
 
-            // 3. Rimuovi le label
-            $labelsModel = MpSoft\MpBrtApiShipment\Models\ModelBrtShipmentResponseLabel::getByNumericSenderReference($numericSenderReference);
-            foreach ($labelsModel as $labelModel) {
-                if (Validate::isLoadedObject($labelModel)) {
-                    $labelModel->delete();
-                }
+        // 3. Rimuovi le label
+        $labelsModel = MpSoft\MpBrtApiShipment\Models\ModelBrtShipmentResponseLabel::getByNumericSenderReference($numericSenderReference);
+        foreach ($labelsModel as $labelModel) {
+            if (Validate::isLoadedObject($labelModel)) {
+                $labelModel->delete();
             }
         }
+
+        return $message;
+    }
+
+    protected function deleteLabelByIdOrder($id_order)
+    {
+        // Prelevo NumericReference e alphaNumericReference
+        $shipmentRequestModel = ModelBrtShipmentRequest::getByIdOrder($id_order);
+        if (!Validate::isLoadedObject($shipmentRequestModel)) {
+            return 'Ordine non trovato.';
+        }
+        $data_json = json_decode($shipmentRequestModel->create_data_json, true);
+        if (is_array($data_json)) {
+            $numericSenderReference = $data_json['numericSenderReference'];
+            $alphanumericSenderReference = $data_json['alphanumericSenderReference'];
+        }
+
+        return $this->deleteLabelByNumericSenderReference($numericSenderReference, $alphanumericSenderReference);
     }
 
     public function displayAjaxCreateLabelRequest($params = null)
@@ -179,9 +193,15 @@ class MpBrtApiShipmentAjaxLabelFormModuleFrontController extends ModuleFrontCont
         $alphanumericSenderReference = $data['alphanumericSenderReference'];
 
         if (!$order_id) {
+            $order_id = 0;
+        }
+
+        // Controllo che non ci sia già un'etichetta creata
+        $shipmentRequestModel = ModelBrtShipmentResponse::getByNumericSenderReference($numericSenderReference);
+        if (Validate::isLoadedObject($shipmentRequestModel)) {
             http_response_code(400);
 
-            return ['success' => false, 'message' => 'ID ordine mancante.'];
+            return ['success' => false, 'message' => 'Etichetta già creata.'];
         }
 
         // 1. Salva la richiesta
@@ -193,21 +213,40 @@ class MpBrtApiShipmentAjaxLabelFormModuleFrontController extends ModuleFrontCont
         $this->updateParcelsMeasurement($parcels);
         unset($data['parcels']);
 
+        if ('IT' == $data['consigneeCountryAbbreviationISOAlpha2']) {
+            $data['consigneeCountryAbbreviationISOAlpha2'] = 'IT';
+        }
+
+        if ('DEF' == $data['serviceType']) {
+            $data['serviceType'] = '';
+        }
+
+        if (!isset($data['senderCustomerCode']) || empty($data['senderCustomerCode'])) {
+            $data['senderCustomerCode'] = $params['account']['userID'];
+        }
+
         // creo i parametri per la label
         $labelParameters = MpSoft\MpBrtApiShipment\Api\LabelParameters::fromConfiguration();
 
-        $shipmentRequestModel = MpSoft\MpBrtApiShipment\Models\ModelBrtShipmentRequest::getByIdOrder($order_id);
+        $shipmentRequestModel = ModelBrtShipmentRequest::getByNumericSenderReference($numericSenderReference);
 
-        $shipmentRequestModel->order_id = $order_id;
-        $shipmentRequestModel->numeric_sender_reference = $data['numericSenderReference'];
-        $shipmentRequestModel->alphanumeric_sender_reference = $data['alphanumericSenderReference'];
-        $shipmentRequestModel->account_json = json_encode($params['account']);
-        $shipmentRequestModel->create_data_json = json_encode($data);
-        $shipmentRequestModel->is_label_required = (int) (Configuration::get('BRT_IS_LABEL_REQUIRED') ?? 0);
-        $shipmentRequestModel->label_parameters_json = json_encode($labelParameters->toArray());
-        $shipmentRequestModel->date_add = date('Y-m-d H:i:s');
-        $shipmentRequestModel->date_upd = date('Y-m-d H:i:s');
-        $shipmentRequestModel->save();
+        try {
+            $shipmentRequestModel->order_id = $order_id;
+            $shipmentRequestModel->numeric_sender_reference = $data['numericSenderReference'];
+            $shipmentRequestModel->alphanumeric_sender_reference = $data['alphanumericSenderReference'];
+            $shipmentRequestModel->account_json = json_encode($params['account']);
+            $shipmentRequestModel->create_data_json = json_encode($data);
+            $shipmentRequestModel->is_label_required = (int) (Configuration::get('BRT_IS_LABEL_REQUIRED') ?? 0);
+            $shipmentRequestModel->label_parameters_json = json_encode($labelParameters->toArray());
+            $shipmentRequestModel->date_add = date('Y-m-d H:i:s');
+            $shipmentRequestModel->date_upd = date('Y-m-d H:i:s');
+            $shipmentRequestModel->save();
+        } catch (Throwable $th) {
+            return [
+                'success' => false,
+                'message' => $th->getMessage(),
+            ];
+        }
 
         // creo la chiamata API
         $apiRequestArray = (new MpSoft\MpBrtApiShipment\Api\RequestCreateData(
@@ -231,7 +270,7 @@ class MpBrtApiShipmentAjaxLabelFormModuleFrontController extends ModuleFrontCont
         try {
             $shipmentRequest = new MpSoft\MpBrtApiShipment\Api\ShipmentRequest($apiRequestArray->toArray());
             $shipmentResponse = MpSoft\MpBrtApiShipment\Api\Create::sendShipmentRequest($shipmentRequest);
-            $modelShipmentResponse = ModelBrtShipmentResponse::getByNumericSenderReference($order_id);
+            $modelShipmentResponse = ModelBrtShipmentResponse::getByNumericSenderReference($numericSenderReference);
 
             // 3. Salva la risposta (già fatto dentro sendShipmentRequest)
             // 4. Salva le label (già fatto dentro sendShipmentRequest)
@@ -304,57 +343,87 @@ class MpBrtApiShipmentAjaxLabelFormModuleFrontController extends ModuleFrontCont
         }
     }
 
-    public function displayAjaxLabelForm($params = null)
+    public function displayAjaxShowBrtLabelForm($params = null)
     {
         header('Content-Type: text/html; charset=utf-8');
 
-        if (isset($params['id_order']) && (int) $params['id_order']) {
-            $id_order = (int) $params['id_order'];
+        if (isset($params['orderID']) && (int) $params['orderID']) {
+            $id_order = (int) $params['orderID'];
+        } else {
+            $id_order = 0;
         }
 
         if (!$id_order) {
-            http_response_code(400);
-            exit('<div style="color:red;padding:2em;">ID ordine mancante.</div>');
+            // Non c'è un ordine. Imposto tutti i valori di default
+            $orderPaymentMethod = '';
+            $totalOrder = 0;
+            $totalOrderCurrency = '';
+            $customer = new Customer();
+            $address = new Address();
+            $weightKg = 1;
+        } else {
+            $order = new Order($id_order);
+            if (!Validate::isLoadedObject($order)) {
+                http_response_code(404);
+                exit('<div style="color:red;padding:2em;">Ordine non trovato.</div>');
+            }
+            $orderPaymentMethod = $order->module ?? '';
+            $customer = new Customer($order->id_customer);
+            $address = new Address($order->id_address_delivery);
+            $weightKg = $order->getTotalWeight();
+            $totalOrder = (float) $order->total_paid_tax_incl;
+            $totalOrderCurrency = number_format((float) $order->total_paid_tax_incl, 2, '.', ',');
         }
 
         $codPaymentType = Configuration::get('BRT_PAYMENT_COD') ?? '';
-
-        // Recupera ordine
-        $order = new Order($id_order);
-        if (!Validate::isLoadedObject($order)) {
-            http_response_code(404);
-            exit('<div style="color:red;padding:2em;">Ordine non trovato.</div>');
-        }
-
-        $orderPaymentMethod = $order->module ?? '';
         $configPaymentMethod = explode(',', Configuration::get('BRT_PAYMENT_MODULES_COD'));
-
+        // hack per avere il mio modulo mpcodfee tra i moduli del contrassegno
         $configPaymentMethod = array_unique(array_merge($configPaymentMethod, ['mpcodfee']));
 
         if (in_array($orderPaymentMethod, $configPaymentMethod)) {
             $isCod = true;
-            $totalOrder = number_format((float) $order->total_paid_tax_incl, 2, '.', ',');
         } else {
             $isCod = false;
-            $totalOrder = '';
+            $totalOrder = 0;
+            $totalOrderCurrency = '';
         }
 
         // Recupera dati destinatario
-        $customer = new Customer($order->id_customer);
-        $address = new Address($order->id_address_delivery);
+
         $countryIso = $address->id_country ? Country::getIsoById($address->id_country) : '';
         $province = $address->id_state ? $this->getProvinceById($address->id_state) : '';
-        $weightKg = $order->getTotalWeight();
+
         if (!$weightKg) {
             $weightKg = 1;
         }
 
+        // Porto
+        $deliveryFreightTypeCode = Configuration::get('BRT_PORT') ?? 'DAP';
+        // Tipo di servizio
+        $serviceType = Configuration::get('BRT_SERVICE_TYPE') ?? '';
+        // Note di spedizione
+        $deliveryNote = substr($address->other ?? '', 0, 70);
+        // Network
+        if ('IT' == $countryIso) {
+            $network = '';
+        } else {
+            $network = Configuration::get('BRT_NETWORK') ?? 'DPD';
+        }
+
         $account = (new MpSoft\MpBrtApiShipment\Api\BrtAuthManager())->getAccount();
+        $id_currency = (int) Configuration::get('PS_CURRENCY_DEFAULT');
+        $currency = new Currency($id_currency, Context::getContext()->language->id);
+        if (!Validate::isLoadedObject($currency)) {
+            $currency = 'EUR';
+        } else {
+            $currency = $currency->iso_code;
+        }
 
         // Prepara dati per precompilazione
         $formData = [
             // Dati destinatario
             'id_order' => $id_order,
+            'currencyIsoCode' => $currency,
             'senderCustomerCode' => $account->userID,
             'departureDepot' => Configuration::get('BRT_DEPARTURE_DEPOT'),
             'consigneeCompanyName' => $address->company ?: ($customer->firstname.' '.$customer->lastname),
@@ -370,19 +439,21 @@ class MpBrtApiShipmentAjaxLabelFormModuleFrontController extends ModuleFrontCont
             'consigneeVATNumber' => $address->vat_number,
             'consigneeItalianFiscalCode' => $address->dni,
             // Dati spedizione
-            'network' => '',
+            'network' => $network,
             'numericSenderReference' => $order->id ?? '',
             'alphanumericSenderReference' => $order->reference ?? '',
             'declaredParcelValue' => '',
             'insuranceAmount' => '',
-            'serviceType' => '',
-            'deliveryNote' => '',
+            'deliveryFreightTypeCode' => $deliveryFreightTypeCode,
+            'serviceType' => $serviceType,
+            'deliveryNote' => $deliveryNote,
             'numberOfParcels' => '',
             'volumeM3' => '',
             'weightKG' => $weightKg,
             // Opzioni avanzate
             'isCODMandatory' => (int) $isCod,
             'cashOnDelivery' => $totalOrder,
+            'cashOnDeliveryCurrency' => $totalOrderCurrency,
             'codPaymentType' => $isCod ? $codPaymentType : '',
             'parcelsHandlingCode' => '',
             'particularitiesDeliveryManagementCode' => '',
@@ -390,7 +461,6 @@ class MpBrtApiShipmentAjaxLabelFormModuleFrontController extends ModuleFrontCont
             'notifyByEmail' => Configuration::get('BRT_ALERT_BY_EMAIL') ?? 0,
             'notifyBySms' => Configuration::get('BRT_ALERT_BY_SMS') ?? 0,
             // Altri dati avanzati
-            'consigneeCountryISOAlpha2' => $countryIso,
             'pricingConditionCode' => '',
             'insuranceAmountCurrency' => 'EUR',
             'senderParcelType' => '',

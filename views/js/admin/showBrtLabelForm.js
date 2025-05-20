@@ -220,16 +220,39 @@ async function showBrtLabelForm(id_order) {
             showConfirmButton: false,
             showCancelButton: false,
             didOpen: () => {
+                function disableOrderData() {
+                    console.log("Disabling Form...");
+
+                    const orderDataContainer = document.querySelectorAll(".order-data-container");
+                    console.log("Trovati", orderDataContainer.length, "container");
+
+                    orderDataContainer.forEach((container) => {
+                        if (container.classList.contains("no-edit")) {
+                            container.querySelectorAll("input, select, textarea, button").forEach((element) => {
+                                element.setAttribute("disabled", true);
+                            });
+                        }
+                    });
+
+                    const advancedFieldsCard = document.getElementById("toggleAdvancedFields");
+                    if (advancedFieldsCard) {
+                        advancedFieldsCard.style.display = "none";
+                    }
+                }
+
                 // Applica le classi CSS per fullscreen se non già presenti
                 const popup = document.querySelector(".swal2-popup.brt-label-modal");
                 if (popup && !popup.classList.contains("swal2-fullscreen")) {
                     popup.classList.add("swal2-fullscreen");
                 }
+
                 addTableRows(parcels);
                 bindTableEvents();
                 brtLabelFormLoaded();
                 bindBrtLabelEvents();
                 bindIsAlertRequired();
+
+                disableOrderData();
             }
         });
     } catch (e) {
@@ -241,7 +264,7 @@ async function showBrtLabelForm(id_order) {
     }
 }
 
-async function deleteBrtLabelForm(id_order) {
+async function deleteBrtOrderLabel(id_order) {
     const confirm = await swalConfirm("Eliminare il segnacollo?");
     if (!confirm) return;
 
@@ -281,11 +304,23 @@ async function createLabelRequest(e) {
     e.stopImmediatePropagation();
 
     const form = document.getElementById("brt-label-form");
-    const formData = new FormData(form);
+    //leggo tutto il contenuto del form
+    const formElements = form.querySelectorAll("input, select, textarea");
+    const isCodMandatory = document.querySelector('input[name="isCODMandatory"]:checked').value;
+    const notifyByEmail = document.querySelector('input[name="notifyByEmail"]:checked').value;
+    const notifyBySms = document.querySelector('input[name="notifyBySms"]:checked').value;
+
     const request = {};
-    formData.forEach((value, key) => {
-        request[key] = value;
+    formElements.forEach((element) => {
+        //se esiste l'attributo name lo aggiungo al request
+        if (element.name) {
+            request[element.name] = element.value;
+        }
     });
+    request.isCODMandatory = isCodMandatory;
+    request.notifyByEmail = notifyByEmail;
+    request.notifyBySms = notifyBySms;
+
     // Colleziona i dati dei colli
     const parcels = [];
     const rows = document.getElementById("table-brt-measure").querySelector("tbody").querySelectorAll("tr");
@@ -310,6 +345,9 @@ async function createLabelRequest(e) {
     });
 
     request.parcels = parcels;
+
+    console.log(request);
+
     try {
         Swal.fire({ title: "Invio richiesta segnacollo...", allowOutsideClick: false, allowEscapeKey: false, didOpen: () => Swal.showLoading() });
         const response = await fetch(ajaxLabelFormController, {
@@ -329,6 +367,7 @@ async function createLabelRequest(e) {
         if (json.success) {
             showPrintLabelButton(e);
             Swal.fire({ icon: "success", title: "Segnacollo creato!", html: json.message || "Richiesta inviata con successo." });
+            MpBrtApiShipment.printLabel(MpApiBrtShipmentOrderID);
         } else {
             Swal.fire({ icon: "error", title: "Errore", html: json.message || "Errore nella creazione del segnacollo." });
         }

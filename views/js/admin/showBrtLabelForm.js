@@ -1,33 +1,3 @@
-function toggleIsAlertRequired() {
-    const isAlertRequiredInput = document.getElementById("isAlertRequired");
-    const notifyByEmailValue = document.querySelector('input[name="notifyByEmail"]:checked').value;
-    const notifyBySmsValue = document.querySelector('input[name="notifyBySms"]:checked').value;
-
-    if (notifyByEmailValue == 1 || notifyBySmsValue == 1) {
-        isAlertRequiredInput.value = 1;
-    } else {
-        isAlertRequiredInput.value = 0;
-    }
-}
-
-async function bindIsAlertRequired() {
-    const notifyByEmail = document.getElementsByName("notifyByEmail");
-    const notifyBySms = document.getElementsByName("notifyBySms");
-
-    notifyByEmail.forEach((radio) => {
-        radio.addEventListener("click", () => {
-            toggleIsAlertRequired();
-        });
-    });
-    notifyBySms.forEach((radio) => {
-        radio.addEventListener("click", () => {
-            toggleIsAlertRequired();
-        });
-    });
-
-    toggleIsAlertRequired();
-}
-
 async function bindBrtLabelEvents() {
     const toggleAdvancedFields = document.getElementById("toggleAdvancedFields");
     if (toggleAdvancedFields) {
@@ -250,8 +220,6 @@ async function showBrtLabelForm(id_order) {
                 bindTableEvents();
                 brtLabelFormLoaded();
                 bindBrtLabelEvents();
-                bindIsAlertRequired();
-
                 disableOrderData();
             }
         });
@@ -307,8 +275,7 @@ async function createLabelRequest(e) {
     //leggo tutto il contenuto del form
     const formElements = form.querySelectorAll("input, select, textarea");
     const isCodMandatory = document.querySelector('input[name="isCODMandatory"]:checked').value;
-    const notifyByEmail = document.querySelector('input[name="notifyByEmail"]:checked').value;
-    const notifyBySms = document.querySelector('input[name="notifyBySms"]:checked').value;
+    const isAlertRequired = document.querySelector('input[name="isAlertRequired"]:checked').value;
 
     const request = {};
     formElements.forEach((element) => {
@@ -318,8 +285,7 @@ async function createLabelRequest(e) {
         }
     });
     request.isCODMandatory = isCodMandatory;
-    request.notifyByEmail = notifyByEmail;
-    request.notifyBySms = notifyBySms;
+    request.isAlertRequired = isAlertRequired;
 
     // Colleziona i dati dei colli
     const parcels = [];

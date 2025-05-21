@@ -19,13 +19,13 @@
 <table cellborder="0" cellspacing="0">
     <thead>
         <tr>
-            {foreach $cellstyle as $row}
-                <th style="{$row.style}">{$row.label1}</th>
+            {foreach $cellstyle as $key => $row}
+                <th style="{$cellstyle[$key].style}">{$row.label1}</th>
             {/foreach}
         </tr>
         <tr>
-            {foreach $cellstyle as $row}
-                <th style="{$row.style}">{$row.label2}</th>
+            {foreach $cellstyle as $key => $row}
+                <th style="{$cellstyle[$key].style}">{$row.label2}</th>
             {/foreach}
         </tr>
         <tr>
@@ -37,15 +37,15 @@
     <tbody>
         {foreach $rows as $row}
             <tr>
-                {foreach $row as $cell}
-                    <td style="{$cell.style}">
+                {foreach $row as $key => $cell}
+                    <td style="{$cellstyle[$key].style}">
                         {$cell.row1|upper}
                     </td>
                 {/foreach}
             </tr>
             <tr>
-                {foreach $row as $cell}
-                    <td style="{$cell.style}">
+                {foreach $row as $key => $cell}
+                    <td style="{$cellstyle[$key].style}">
                         <strong>{$cell.row2|upper}</strong>
                     </td>
                 {/foreach}

@@ -212,7 +212,7 @@ class MpBrtApiShipmentAjaxLabelFormModuleFrontController extends ModuleFrontCont
         $parcels = $data['parcels'];
         $this->updateParcelsMeasurement($parcels);
         unset($data['parcels']);
-
+        // Pulizia dati
         if ('IT' == $data['consigneeCountryAbbreviationISOAlpha2']) {
             $data['consigneeCountryAbbreviationISOAlpha2'] = 'IT';
         }
@@ -223,6 +223,17 @@ class MpBrtApiShipmentAjaxLabelFormModuleFrontController extends ModuleFrontCont
 
         if (!isset($data['senderCustomerCode']) || empty($data['senderCustomerCode'])) {
             $data['senderCustomerCode'] = $params['account']['userID'];
+        }
+
+        try {
+            unset($data['length']);
+            unset($data['width']);
+            unset($data['height']);
+            unset($data['weight']);
+            unset($data['volume']);
+            unset($data['cashOnDeliveryCurrency']);
+        } catch (Throwable $th) {
+            // non fa niente
         }
 
         // creo i parametri per la label
@@ -409,6 +420,8 @@ class MpBrtApiShipmentAjaxLabelFormModuleFrontController extends ModuleFrontCont
         } else {
             $network = Configuration::get('BRT_NETWORK') ?? 'DPD';
         }
+        // Avviso
+        $isAlertRequired = (int) Configuration::get('BRT_ALERT_REQUIRED') ?? 0;
 
         $account = (new MpSoft\MpBrtApiShipment\Api\BrtAuthManager())->getAccount();
         $id_currency = (int) Configuration::get('PS_CURRENCY_DEFAULT');
@@ -451,6 +464,7 @@ class MpBrtApiShipmentAjaxLabelFormModuleFrontController extends ModuleFrontCont
             'volumeM3' => '',
             'weightKG' => $weightKg,
             // Opzioni avanzate
+            'isAlertRequired' => $isAlertRequired,
             'isCODMandatory' => (int) $isCod,
             'cashOnDelivery' => $totalOrder,
             'cashOnDeliveryCurrency' => $totalOrderCurrency,

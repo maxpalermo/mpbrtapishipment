@@ -91,17 +91,17 @@ class ModelBrtShipmentBordero extends \ObjectModel
         return $db->executeS($subQuery);
     }
 
-    public static function getLastUnprintedBorderoNumber()
+    public static function getLastPrintedBorderoNumber()
     {
         $db = \Db::getInstance();
         $query = new \DbQuery();
-        $query->select('bordero_number')
+        $query->select('max(bordero_number)')
             ->from('brt_shipment_bordero')
-            ->where('bordero_status = '.(int) self::BORDERO_STATUS_PENDING);
+            ->where('printed = 1');
 
         $result = (int) $db->getValue($query);
 
-        return ++$result;
+        return $result;
     }
 
     public static function getLatestBorderoNumber()
@@ -122,6 +122,31 @@ class ModelBrtShipmentBordero extends \ObjectModel
         $lastBorderoNumber = self::getLatestBorderoNumber();
 
         return $lastBorderoNumber + 1;
+    }
+
+    public static function getHistory()
+    {
+        $db = \Db::getInstance();
+        $query = new \DbQuery();
+        $query
+            ->select('a.bordero_number')
+            ->select('a.bordero_date')
+            ->select('a.printed_date')
+            ->select('count(a.bordero_number) as total_deliveries')
+            ->select('sum(b.cash_on_delivery > 0) as count_cash_on_delivery')
+            ->select('sum(b.cash_on_delivery) as total_cash_on_delivery')
+            ->select('sum(b.number_of_parcels) as total_parcels')
+            ->select('sum(b.weight_kg) as total_weight_kg')
+            ->select('sum(b.volume_m3) as total_volume_m3')
+            ->from('brt_shipment_bordero', 'a')
+            ->innerJoin('brt_shipment_response', 'b', 'a.id_brt_shipment_response = b.id_brt_shipment_response')
+            ->where('a.printed = 1')
+            ->groupBy('a.bordero_number')
+            ->orderBy('a.bordero_number DESC');
+
+        $sql = $query->build();
+
+        return $db->executeS($sql);
     }
 
     public static function compileBordero($params = null)
@@ -241,5 +266,15 @@ class ModelBrtShipmentBordero extends \ObjectModel
         );
 
         return $res;
+    }
+
+    public static function clean()
+    {
+        $db = \Db::getInstance();
+
+        return $db->delete(
+            self::$definition['table'],
+            'numeric_sender_reference = "" OR alphanumeric_sender_reference = ""'
+        );
     }
 }

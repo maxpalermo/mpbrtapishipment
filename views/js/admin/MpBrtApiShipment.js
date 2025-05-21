@@ -7,7 +7,6 @@ class MpBrtApiShipment {
     // -- Bind Events ---
     static bindEvents() {
         this.bindToggleAdvancedFields();
-        this.bindIsAlertRequired();
         this.bindTableEvents();
         this.bindRowMeasureEvents();
     }
@@ -23,22 +22,6 @@ class MpBrtApiShipment {
                 $("#advancedFieldsCard").slideToggle(200);
             });
         }
-    }
-
-    static bindIsAlertRequired() {
-        const notifyByEmail = document.getElementsByName("notifyByEmail");
-        const notifyBySms = document.getElementsByName("notifyBySms");
-        notifyByEmail.forEach((radio) => {
-            radio.addEventListener("click", () => {
-                this.toggleIsAlertRequired();
-            });
-        });
-        notifyBySms.forEach((radio) => {
-            radio.addEventListener("click", () => {
-                this.toggleIsAlertRequired();
-            });
-        });
-        this.toggleIsAlertRequired();
     }
 
     static bindTableEvents() {
@@ -298,18 +281,6 @@ class MpBrtApiShipment {
         }
     }
 
-    // --- showBrtLabelForm.js ---
-    static toggleIsAlertRequired() {
-        const isAlertRequiredInput = document.getElementById("isAlertRequired");
-        const notifyByEmailValue = document.querySelector('input[name="notifyByEmail"]:checked').value;
-        const notifyBySmsValue = document.querySelector('input[name="notifyBySms"]:checked').value;
-        if (notifyByEmailValue == 1 || notifyBySmsValue == 1) {
-            isAlertRequiredInput.value = 1;
-        } else {
-            isAlertRequiredInput.value = 0;
-        }
-    }
-
     static getTableSum() {
         const rows = document.getElementById("table-brt-measure").querySelector("tbody").querySelectorAll("tr");
         const trFoot = document.getElementById("table-brt-measure").querySelector("#total-row");
@@ -542,21 +513,23 @@ class MpBrtApiShipment {
     static async createLabelRequest() {
         const self = this;
         const form = document.getElementById("brt-label-form");
+
         if (!self.validateForm(form)) return;
 
         const formElements = form.querySelectorAll("input, select, textarea");
         const isCodMandatory = document.querySelector('input[name="isCODMandatory"]:checked').value;
-        const notifyByEmail = document.querySelector('input[name="notifyByEmail"]:checked').value;
-        const notifyBySms = document.querySelector('input[name="notifyBySms"]:checked').value;
+        const isAlertRequired = document.querySelector('input[name="isAlertRequired"]:checked').value;
         const request = {};
+
         formElements.forEach((element) => {
             if (element.name) {
                 request[element.name] = element.value;
             }
         });
+
         request.isCODMandatory = isCodMandatory;
-        request.notifyByEmail = notifyByEmail;
-        request.notifyBySms = notifyBySms;
+        request.isAlertRequired = isAlertRequired;
+
         const parcels = [];
         const rows = document.getElementById("table-brt-measure").querySelector("tbody").querySelectorAll("tr");
         rows.forEach((row) => {
@@ -578,7 +551,9 @@ class MpBrtApiShipment {
                 });
             }
         });
+
         request.parcels = parcels;
+
         try {
             Swal.fire({ title: "Invio richiesta segnacollo...", allowOutsideClick: false, allowEscapeKey: false, didOpen: () => Swal.showLoading() });
             const json = await self.fetch(self.formControllerURL, {
@@ -614,7 +589,10 @@ class MpBrtApiShipment {
             e.preventDefault();
             if (MpBrtApiShipment._submitting) return;
 
-            if (!MpBrtApiShipment.validateForm(form)) {
+            const { validate, errors } = MpBrtApiShipment.validateForm(form);
+
+            if (!validate) {
+                Swal.fire({ icon: "error", title: "Errore", html: errors.join("<br>") });
                 MpBrtApiShipment.scrollToFirstError(form);
                 return;
             }
@@ -679,34 +657,57 @@ class MpBrtApiShipment {
 
     static validateForm(form) {
         const self = this;
+        const errors = [];
+
         let valid = true;
         [...form.elements].forEach((el) => {
             self.clearFieldError(el);
             if (el.hasAttribute("required") && !el.value.trim()) {
                 self.showFieldError(el, "Campo obbligatorio");
                 valid = false;
+                errors.push({
+                    name: el.name,
+                    error: "Campo obbligatorio"
+                });
             }
             if (el.type === "email" && el.value) {
                 const re = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
                 if (!re.test(el.value)) {
                     self.showFieldError(el, "Email non valida");
                     valid = false;
+                    errors.push({
+                        name: el.name,
+                        error: "Email non valida"
+                    });
                 }
             }
             if (el.name === "consigneeZIPCode" && el.value) {
                 if (!/^\d{5,10}$/.test(el.value)) {
                     self.showFieldError(el, "CAP non valido");
                     valid = false;
+                    errors.push({
+                        name: el.name,
+                        error: "CAP non valido"
+                    });
                 }
             }
             if ((el.name === "consigneeProvinceAbbreviation" || el.name === "consigneeCountryAbbreviationISOAlpha2") && el.value) {
                 if (!/^[A-Z]{2}$/.test(el.value)) {
                     self.showFieldError(el, "Inserire 2 lettere maiuscole");
                     valid = false;
+                    errors.push({
+                        name: el.name,
+                        error: "Inserire 2 lettere maiuscole"
+                    });
                 }
             }
         });
-        return valid;
+
+        if (!valid) {
+            self.scrollToFirstError(form);
+        }
+
+        return { valid, errors };
     }
 
     // --- AdminScripts.js ---

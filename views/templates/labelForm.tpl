@@ -281,6 +281,18 @@
                                 <option value="OC">ACCETTARE ASSEGNO CIRCOLARE INTESTATO AL MITTENTE ORIGINALE</option>
                             </select>
                         </div>
+                        <div class="brt-form-group" style="max-width: 130px;">
+                            <label for="isAlertRequired">Alert?</label>
+                            <div class="text-center">
+                                <div class="ps-switch ps-switch-lg ps-switch-nolabel ps-switch-center ps-togglable-row">
+                                    <input type="radio" name="isAlertRequired" id="input-false-isAlertRequired" value="0" {if $formData.isAlertRequired == 0}checked{/if}>
+                                    <label for="input-false-isAlertRequired">Off</label>
+                                    <input type="radio" name="isAlertRequired" id="input-true-isAlertRequired" value="1" {if $formData.isAlertRequired == 1}checked{/if}>
+                                    <label for="input-true-isCODMandatory">On</label>
+                                    <span class="slide-button"></span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div class="brt-form-row">
                         <div class="brt-form-group">
@@ -294,33 +306,6 @@
                         <div class="brt-form-group">
                             <label for="particularitiesHoldOnStockManagementCode">Particolarità giacenza</label>
                             <input type="text" id="particularitiesHoldOnStockManagementCode" name="particularitiesHoldOnStockManagementCode">
-                        </div>
-                        <div class="brt-form-row" style="max-width: auto; border: 1px solid #ccc; padding: 10px;">
-                            <input type="hidden" id="isAlertRequired" name="isAlertRequired" value="0">
-                            <div class="brt-form-group">
-                                <label>Notifica via EMAIL</label>
-                                <div class="text-center">
-                                    <div class="ps-switch ps-switch-lg ps-switch-nolabel ps-switch-center ps-togglable-row">
-                                        <input type="radio" name="notifyByEmail" id="input-false-notifyByEmail" value="0" {if $formData.notifyByEmail == 0}checked{/if}>
-                                        <label for="input-false-notifyByEmail">Off</label>
-                                        <input type="radio" name="notifyByEmail" id="input-true-notifyByEmail" value="1" {if $formData.notifyByEmail == 1}checked{/if}>
-                                        <label for="input-true-notifyByEmail">On</label>
-                                        <span class="slide-button"></span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="brt-form-group">
-                                <label>Notifica via SMS</label>
-                                <div class="text-center">
-                                    <div class="ps-switch ps-switch-lg ps-switch-nolabel ps-switch-center ps-togglable-row">
-                                        <input type="radio" name="notifyBySms" id="input-false-notifyBySms" value="0" {if $formData.notifyBySms == 0}checked{/if}>
-                                        <label for="input-false-notifyBySms">Off</label>
-                                        <input type="radio" name="notifyBySms" id="input-true-notifyBySms" value="1" {if $formData.notifyBySms == 1}checked{/if}>
-                                        <label for="input-true-notifyBySms">On</label>
-                                        <span class="slide-button"></span>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>

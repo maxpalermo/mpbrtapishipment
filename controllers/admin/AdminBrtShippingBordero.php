@@ -20,6 +20,7 @@
  */
 
 use MpSoft\MpBrtApiShipment\Api\ExecutionMessage;
+use MpSoft\MpBrtApiShipment\Helpers\BrtBorderoPdf;
 use MpSoft\MpBrtApiShipment\Helpers\DeleteLabel;
 use MpSoft\MpBrtApiShipment\Models\ModelBrtShipmentBordero;
 use MpSoft\MpBrtApiShipment\Models\ModelBrtShipmentResponse;
@@ -108,7 +109,7 @@ class AdminBrtShippingBorderoController extends ModuleAdminController
         ];
 
         $this->_select = 'b.*';
-        $this->_where = ' AND a.bordero_status = 0';
+        $this->_where = ' AND a.printed = 0';
         $this->_defaultOrderBy = 'a.id_brt_shipment_bordero';
         $this->_defaultOrderWay = 'ASC';
 
@@ -143,6 +144,9 @@ class AdminBrtShippingBorderoController extends ModuleAdminController
                 'href' => 'javascript:void(0);',
                 'icon' => 'icon-barcode',
             ],
+            'divider' => [
+                'text' => 'divider',
+            ],
             'printAllLabels' => [
                 'text' => $this->module->l('Stampa tutti i segnacolli'),
                 'confirm' => $this->module->l('Vuoi stampare tutti i segnacolli di questo borderò?'),
@@ -150,26 +154,37 @@ class AdminBrtShippingBorderoController extends ModuleAdminController
                 'href' => 'javascript:void(0);',
                 'icon' => 'icon-barcode text-danger',
             ],
-            'divider' => [
-                'text' => 'divider',
-            ],
-            'printBordero' => [
-                'text' => $this->module->l('Stampa borderò'),
-                'confirm' => $this->module->l('Sei sicuro di voler stampare il borderò?'),
-                'icon' => 'icon-file text-info',
-            ],
         ];
     }
 
     public function initPageHeaderToolbar()
     {
         parent::initPageHeaderToolbar();
+
+        $printBorderoUrl = $this->context->link->getAdminLink($this->controller_name, true, [], ['action' => 'printBordero']);
+
+        $this->page_header_toolbar_btn['print'] = [
+            'href' => $printBorderoUrl,
+            'desc' => $this->trans('Stampa borderò', [], 'Admin.Actions'),
+            'icon' => 'icon-file',
+            'target' => '_blank',
+            'class' => 'print',
+        ];
+
+        $this->page_header_toolbar_btn['history'] = [
+            'href' => 'javascript:showHistory();',
+            'desc' => $this->trans('Storico Borderò', [], 'Admin.Actions'),
+            'icon' => 'icon-list',
+            'class' => 'history',
+        ];
+
         $this->page_header_toolbar_btn['delete'] = [
             'href' => 'javascript:showDeleteBrtLabel();',
             'desc' => $this->trans('Elimina Etichetta', [], 'Admin.Actions'),
             'icon' => 'icon-trash',
             'class' => 'delete',
         ];
+
         $this->page_header_toolbar_btn['newLabel'] = [
             'href' => 'javascript:showBrtLabelDialog();',
             'desc' => $this->trans('Nuova Etichetta', [], 'Admin.Actions'),
@@ -195,6 +210,8 @@ class AdminBrtShippingBorderoController extends ModuleAdminController
             $path.'js/swal2/request/SwalSuccess.js',
             $path.'js/swal2/request/SwalWarning.js',
             $path.'js/admin/MpBrtApiShipment.js',
+            $path.'js/admin/confirmBordero.js',
+            $path.'js/admin/showHistory.js',
         ], true);
         $this->addCSS([
             $path.'js/swal2/sweetalert2.min.css',
@@ -210,7 +227,7 @@ class AdminBrtShippingBorderoController extends ModuleAdminController
 
         $frontController = $this->context->link->getModuleLink($this->module->name, 'AjaxLabelForm');
 
-        $script = <<<JS
+        $script = <<<SCRIPT
             <script type="text/javascript">
                 async function showDeleteBrtLabel() {
                     ApiShipmentJs.formControllerURL = MpBrtApiShipmentControllerURL;
@@ -230,10 +247,16 @@ class AdminBrtShippingBorderoController extends ModuleAdminController
                     const tableColli = new TableColli();
                     await tableColli.showFormColli();
                 }
+                async function showHistory()
+                {
+                    const showHistory = new ShowHistory("{$controllerURL}");
+                    const list = await showHistory.getHistory();
+                    await showHistory.prepareDialog();
+                    showHistory.showDialog();
+                }
                 
                 (function() {
                     if (document.readyState === 'loading') {
-                        console.log('DOMContentLoaded');
                         document.addEventListener('DOMContentLoaded', main);
                     } else {
                         console.log('Firing main()');
@@ -247,7 +270,7 @@ class AdminBrtShippingBorderoController extends ModuleAdminController
                     }
                 })();
             </script>
-        JS;
+        SCRIPT;
 
         $this->content = $script;
         parent::initContent();
@@ -356,6 +379,137 @@ class AdminBrtShippingBorderoController extends ModuleAdminController
         $this->sendAjaxResponse(['success' => false]);
     }
 
+    public function processPrintBordero()
+    {
+        $db = Db::getInstance(_PS_USE_SQL_SLAVE_);
+        $table = _DB_PREFIX_.'brt_shipment_bordero';
+        $boxes = $db->executeS(
+            "SELECT id_brt_shipment_bordero FROM {$table} WHERE bordero_number = 0 ORDER BY id_brt_shipment_bordero ASC"
+        );
+
+        if (!$boxes) {
+            $lastBordero = ModelBrtShipmentBordero::getLastPrintedBorderoNumber();
+            $boxes = $db->executeS(
+                "SELECT id_brt_shipment_bordero FROM {$table} WHERE bordero_number = {$lastBordero} ORDER BY id_brt_shipment_bordero ASC"
+            );
+        }
+
+        if (!is_array($boxes)) {
+            $this->errors[] = $this->module->l('Impossibile stampare il borderò');
+
+            return;
+        }
+
+        $rows = [];
+        foreach ($boxes as $box) {
+            $row = $this->prepareBorderoRow($box['id_brt_shipment_bordero']);
+            if ($row) {
+                $rows[] = $row;
+            }
+        }
+
+        $bordero = new BrtBorderoPdf($rows);
+        $bordero->render();
+    }
+
+    protected function prepareBorderoRow($id_bordero)
+    {
+        $row = [];
+        $bordero = new ModelBrtShipmentBordero($id_bordero);
+        if (!Validate::isLoadedObject($bordero)) {
+            return;
+        }
+        $response = new ModelBrtShipmentResponse($bordero->id_brt_shipment_response);
+        if (!Validate::isLoadedObject($response)) {
+            return;
+        }
+
+        $row = [
+            [
+                'row1' => substr($response->consignee_company_name, 0, 30),
+                'row2' => 'TIPO DI SERVIZIO: '.$response->service_type,
+                'data' => [
+                    'consigneeCompanyName' => $response->consignee_company_name,
+                    'serviceType' => $response->service_type,
+                ],
+            ],
+            [
+                'row1' => substr($response->consignee_address, 0, 30),
+                'row2' => "{$response->consignee_zip_code} {$response->consignee_city} {$response->consignee_province_abbreviation}",
+                'data' => [
+                    'consigneeAddress' => $response->consignee_address,
+                    'consigneeZipCode' => $response->consignee_zip_code,
+                    'consigneeCity' => $response->consignee_city,
+                    'consigneeProvinceAbbreviation' => $response->consignee_province_abbreviation,
+                ],
+            ],
+            [
+                'row1' => $response->numeric_sender_reference,
+                'row2' => $response->alphanumeric_sender_reference,
+                'data' => [
+                    'numericSenderReference' => $response->numeric_sender_reference,
+                    'alphanumericSenderReference' => $response->alphanumeric_sender_reference,
+                ],
+            ],
+            [
+                'row1' => '',
+                'row2' => '',
+                'data' => [],
+            ],
+            [
+                'row1' => $this->formatPrice($response->cash_on_delivery),
+                'row2' => '',
+                'data' => [
+                    'cashOnDelivery' => $response->cash_on_delivery,
+                ],
+            ],
+            [
+                'row1' => $response->number_of_parcels,
+                'row2' => '',
+                'data' => [
+                    'numberOfParcels' => $response->number_of_parcels,
+                ],
+            ],
+            [
+                'row1' => number_format($response->weight_kg, 1, ',', ' ').' kg',
+                'row2' => '',
+                'data' => [
+                    'weightKg' => $response->weight_kg,
+                ],
+            ],
+            [
+                'row1' => number_format($response->volume_m3, 3, ',', ' ').' m3',
+                'row2' => '',
+                'data' => [
+                    'volumeM3' => $response->volume_m3,
+                ],
+            ],
+            [
+                'row1' => $response->parcel_number_from,
+                'row2' => $response->parcel_number_to,
+                'data' => [
+                    'parcelNumberFrom' => $response->parcel_number_from,
+                    'parcelNumberTo' => $response->parcel_number_to,
+                ],
+            ],
+        ];
+
+        return $row;
+    }
+
+    public function formatPrice($price, $noReturnZeroValue = true)
+    {
+        if ($noReturnZeroValue && 0 == $price) {
+            return '--';
+        }
+
+        $locale = Tools::getContextLocale(Context::getContext());
+        $currency = Context::getContext()->currency;
+        $price = $locale->formatPrice($price, $currency->iso_code);
+
+        return $price;
+    }
+
     public function processDelete()
     {
         $id_bordero = (int) Tools::getValue($this->identifier);
@@ -368,13 +522,12 @@ class AdminBrtShippingBorderoController extends ModuleAdminController
         $numericSenderReference = $modelBrtBordero->numeric_sender_reference;
         $alphanumericSenderReference = $modelBrtBordero->alphanumeric_sender_reference;
 
-        $deleteResponse = (new DeleteLabel($numericSenderReference, $alphanumericSenderReference))->run();
-        $executionMessage = ExecutionMessage::fromArray($deleteResponse);
-        if (0 == $executionMessage->code) {
+        $deleteResponse = (new DeleteLabel($numericSenderReference, $alphanumericSenderReference))->run($id_bordero);
+        if (true == $deleteResponse['success']) {
             $this->confirmations[] = $this->module->l('Riga borderò cancellata con successo');
             $result = true;
         } else {
-            $this->errors[] = $this->module->l('Impossibile cancellare il borderò: '.$executionMessage->message);
+            $this->errors[] = $this->module->l('Impossibile cancellare il borderò: '.$deleteResponse['message']);
             $result = false;
         }
 
@@ -473,7 +626,7 @@ class AdminBrtShippingBorderoController extends ModuleAdminController
     public function ajaxProcessprintBordero($data)
     {
         $db = Db::getInstance();
-        $bordero_number = ModelBrtShipmentBordero::getLastUnprintedBorderoNumber();
+        $bordero_number = ModelBrtShipmentBordero::getLastPrintedBorderoNumber();
         $bordero_date = date('Y-m-d H:i:s');
 
         $subQuery = new DbQuery();
@@ -507,6 +660,16 @@ class AdminBrtShippingBorderoController extends ModuleAdminController
         return [
             'success' => false,
             'message' => 'Nessun segnacollo selezionato',
+        ];
+    }
+
+    public function ajaxProcessGetHistory()
+    {
+        $history = ModelBrtShipmentBordero::getHistory();
+
+        return [
+            'success' => true,
+            'history' => $history,
         ];
     }
 

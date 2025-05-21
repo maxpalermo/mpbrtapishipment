@@ -39,37 +39,46 @@ class DeleteLabel
         $this->alphanumericSenderReference = $alphanumericSenderReference;
     }
 
-    public function run()
+    public function run($id_bordero = null)
     {
         $ApiDelete = new Delete();
         $response = $ApiDelete->deleteShipment($this->numericSenderReference, $this->alphanumericSenderReference);
         $executionMessage = ExecutionMessage::fromArray($response);
-        if (0 == $executionMessage->code) {
-            $modelBrtShipmentRequest = ModelBrtShipmentRequest::getByNumericSenderReference($this->numericSenderReference);
-            if (\Validate::isLoadedObject($modelBrtShipmentRequest)) {
-                $modelBrtShipmentRequest->delete();
-            }
 
-            $modelBrtShipmentResponse = ModelBrtShipmentResponse::getByNumericSenderReference($this->numericSenderReference);
-            if (\Validate::isLoadedObject($modelBrtShipmentResponse)) {
-                $modelBrtShipmentResponse->delete();
-            }
+        $modelBrtShipmentRequest = ModelBrtShipmentRequest::getByNumericSenderReference($this->numericSenderReference);
+        if (\Validate::isLoadedObject($modelBrtShipmentRequest)) {
+            $modelBrtShipmentRequest->delete();
+        }
 
-            $modelBrtShipmentResponseLabels = ModelBrtShipmentResponseLabel::getByNumericSenderReference($this->numericSenderReference);
-            foreach ($modelBrtShipmentResponseLabels as $modelBrtShipmentResponseLabel) {
-                if (\Validate::isLoadedObject($modelBrtShipmentResponseLabel)) {
-                    $modelBrtShipmentResponseLabel->delete();
-                }
-            }
+        $modelBrtShipmentResponse = ModelBrtShipmentResponse::getByNumericSenderReference($this->numericSenderReference);
+        if (\Validate::isLoadedObject($modelBrtShipmentResponse)) {
+            $modelBrtShipmentResponse->delete();
+        }
 
-            $modelBrtShipmentBordero = ModelBrtShipmentBordero::getByNumericSenderReference($this->numericSenderReference);
+        $modelBrtShipmentResponseLabels = ModelBrtShipmentResponseLabel::getByNumericSenderReference($this->numericSenderReference);
+        foreach ($modelBrtShipmentResponseLabels as $modelBrtShipmentResponseLabel) {
+            if (\Validate::isLoadedObject($modelBrtShipmentResponseLabel)) {
+                $modelBrtShipmentResponseLabel->delete();
+            }
+        }
+
+        $modelBrtShipmentBordero = ModelBrtShipmentBordero::getByNumericSenderReference($this->numericSenderReference);
+        if (\Validate::isLoadedObject($modelBrtShipmentBordero)) {
+            $modelBrtShipmentBordero->delete();
+        }
+
+        if ($id_bordero) {
+            $modelBrtShipmentBordero = new ModelBrtShipmentBordero($id_bordero);
             if (\Validate::isLoadedObject($modelBrtShipmentBordero)) {
                 $modelBrtShipmentBordero->delete();
             }
         }
 
+        ModelBrtShipmentBordero::clean();
+
         return [
-            'response' => $response,
+            'success' => 0 == $executionMessage->code,
+            'message' => $executionMessage->toMsgError(),
             'senderCode' => $this->numericSenderReference,
         ];
     }

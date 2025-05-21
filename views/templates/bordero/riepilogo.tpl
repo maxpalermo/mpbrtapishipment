@@ -40,17 +40,17 @@
         </tr>
         <tr>
             <td style="width: 8cm;">IMPORTO CONTRASSEGNI:</td>
-            <td style="width: 2cm; text-align: right;"><strong>{$totali.totcass|number_format:2:",":" "}</strong></td>
+            <td style="width: 2cm; text-align: right;"><strong>{$totali.cashOnDelivery|number_format:2:",":" "}</strong></td>
             <td style="width: 2cm;">EUR</td>
         </tr>
         <tr>
             <td style="width: 8cm;">TOTALE PESO:</td>
-            <td style="width: 2cm; text-align: right;"><strong>{$totali.peso|number_format:2:",":" "}</strong></td>
+            <td style="width: 2cm; text-align: right;"><strong>{$totali.weightKg|number_format:2:",":" "}</strong></td>
             <td style="width: 2cm;">Kg</td>
         </tr>
         <tr>
             <td style="width: 8cm;">TOTALE VOLUME:</td>
-            <td style="width: 2cm; text-align: right;"><strong>{$totali.volume|number_format:3:",":" "}</strong></td>
+            <td style="width: 2cm; text-align: right;"><strong>{$totali.volumeM3|number_format:3:",":" "}</strong></td>
             <td style="width: 2cm;">M<sup>3</sup></td>
         </tr>
     </tbody>

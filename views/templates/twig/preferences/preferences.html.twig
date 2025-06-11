@@ -1,0 +1,232 @@
+<dialog id="brt-label-settings-dialog" class="bootstrap">
+    <style>
+        dialog {
+            font-size: 0.9rem;
+            border: none;
+            padding: 16px;
+        }
+        dialog::backdrop {
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        fieldset {
+            border: 1px solid #ccc;
+            padding: 8px;
+            margin-bottom: 10px;
+        }
+        legend {
+            font-weight: 400;
+            font-size: 1.2rem;
+            padding-left: 8px;
+        }
+        .d-flex-100 {
+            width: 100%;
+        }
+        .gap-2 {
+            gap: 0.5rem;
+        }
+        .fixed-width-xl {
+            width: 300px;
+        }
+        .fixed-width-lg {
+            width: 250px;
+        }
+        .fixed-width-md {
+            width: 200px;
+        }
+        .fixed-width-sm {
+            width: 100px;
+        }
+        .fixed-width-xs {
+            width: 50px;
+        }
+        .p-4 {
+            padding: 1rem;
+        }
+    </style>
+    <form id="form-brt-label-settings" method="POST" style="font-size: 0.9rem;">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title">Impostazioni etichette</h5>
+            </div>
+            <div class="card-body">
+                <div class="form-group">
+                    <label>Ambiente</label>
+                    <div class="ps-switch ps-switch-lg ps-togglable-row ps-label-left">
+                        <input type="radio" name="BRT_ENVIRONMENT" id="BRT_ENVIRONMENT_SANDBOX" value="SANDBOX" {% if settings.BRT_ENVIRONMENT == 'SANDBOX' or settings.BRT_ENVIRONMENT == '' %}checked{% endif %}>
+                        <label for="BRT_ENVIRONMENT_SANDBOX">Sandbox</label>
+                        <input type="radio" name="BRT_ENVIRONMENT" id="BRT_ENVIRONMENT_PRODUCTION" value="PRODUCTION" {% if settings.BRT_ENVIRONMENT == 'PRODUCTION' %}checked{% endif %}>
+                        <label for="BRT_ENVIRONMENT_PRODUCTION">Produzione</label>
+                        <span class="slide-button"></span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <fieldset>
+                        <legend>Sandbox</legend>
+                        <div class="d-flex justify-content-start align-items-center gap-2">
+                            <div class="form-group">
+                                <label for="BRT_SANDBOX_USER_ID">User ID</label>
+                                <input type="text" name="BRT_SANDBOX_USER_ID" id="BRT_SANDBOX_USER_ID" class="form-control" value="{{ settings.BRT_SANDBOX_USER_ID }}">
+                            </div>
+                            <div class="form-group">
+                                <label for="BRT_SANDBOX_PASSWORD">Password</label>
+                                <input type="text" name="BRT_SANDBOX_PASSWORD" id="BRT_SANDBOX_PASSWORD" class="form-control" value="{{ settings.BRT_SANDBOX_PASSWORD }}">
+                            </div>
+                            <div class="form-group">
+                                <label for="BRT_SANDBOX_DEPARTURE_DEPOT">Deposito di partenza</label>
+                                <input type="text" name="BRT_SANDBOX_DEPARTURE_DEPOT" id="BRT_SANDBOX_DEPARTURE_DEPOT" class="form-control" value="{{ settings.BRT_SANDBOX_DEPARTURE_DEPOT }}">
+                            </div>
+                        </div>
+                    </fieldset>
+                </div>
+                <div class="form-group">
+                    <fieldset>
+                        <legend>Produzione</legend>
+                        <div class="d-flex justify-content-start align-items-center gap-2">
+                            <div class="form-group">
+                                <label for="BRT_PRODUCTION_USER_ID">User ID</label>
+                                <input type="text" name="BRT_PRODUCTION_USER_ID" id="BRT_PRODUCTION_USER_ID" class="form-control" value="{{ settings.BRT_PRODUCTION_USER_ID }}">
+                            </div>
+                            <div class="form-group">
+                                <label for="BRT_PRODUCTION_PASSWORD">Password</label>
+                                <input type="text" name="BRT_PRODUCTION_PASSWORD" id="BRT_PRODUCTION_PASSWORD" class="form-control" value="{{ settings.BRT_PRODUCTION_PASSWORD }}">
+                            </div>
+                            <div class="form-group">
+                                <label for="BRT_PRODUCTION_DEPARTURE_DEPOT">Deposito di partenza</label>
+                                <input type="text" name="BRT_PRODUCTION_DEPARTURE_DEPOT" id="BRT_PRODUCTION_DEPARTURE_DEPOT" class="form-control" value="{{ settings.BRT_PRODUCTION_DEPARTURE_DEPOT }}">
+                            </div>
+                        </div>
+                    </fieldset>
+                </div>
+                <div class="form-group">
+                    <label for="BRT_DELIVERY_FREIGHT_TYPE_CODE">Porto</label>
+                    <select name="BRT_DELIVERY_FREIGHT_TYPE_CODE" id="BRT_DELIVERY_FREIGHT_TYPE_CODE" class="form-control">
+                        <option value="1">FRANCO</option>
+                        <option value="2">ASSEGNATO</option>
+                        <option value="4">FRANCO +C/ASSEGNO</option>
+                        <option value="6">ASSEGNATO +C/ASSEGNO</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="BRT_SERVICE_TYPE">Tipo di servizio</label>
+                    <select name="BRT_SERVICE_TYPE" id="BRT_SERVICE_TYPE" class="form-control">
+                        <option value="DEF">Default</option>
+                        <option value="E">Espresso</option>
+                        <option value="H">10:30</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="BRT_NETWORK">Network</label>
+                    <select name="BRT_NETWORK" id="BRT_NETWORK" class="form-control">
+                        <option value="D">DPD</option>
+                        <option value="E">EURO EXPRESS</option>
+                        <option value="F">FED</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="BRT_COD_PAYMENT_TYPE">Tipo di pagamento contrassegno</label>
+                    <select name="BRT_COD_PAYMENT_TYPE" id="BRT_COD_PAYMENT_TYPE" class="form-control">
+                        <option value="DEF">ACCETTARE CONTANTE</option>
+                        <option value="BM">ACCETTARE ASSEGNO BANCARIO INTESTATO ALLA MITTENTE</option>
+                        <option value="CM">ACCETTARE ASSEGNO CIRCOLARE INTESTATO ALLA MITTENTE</option>
+                        <option value="BB">ACCETTARE ASSEGNO BANCARIO INTESTATO CORRIERE CON MANLEVA</option>
+                        <option value="OM">ACCETTARE ASSEGNO INTESTATO AL MITTENTE ORIGINALE</option>
+                        <option value="OC">ACCETTARE ASSEGNO CIRCOLARE INTESTATO AL MITTENTE ORIGINALE</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Avvisi</label>
+                    <div class="ps-switch ps-switch-lg ps-togglable-row ps-label-left">
+                        <input type="radio" name="BRT_IS_ALERT_REQUIRED" id="BRT_IS_ALERT_REQUIRED_OFF" value="0" {% if settings.BRT_IS_ALERT_REQUIRED == '0' %}checked{% endif %}>
+                        <label for="BRT_IS_ALERT_REQUIRED_OFF">NO</label>
+                        <input type="radio" name="BRT_IS_ALERT_REQUIRED" id="BRT_IS_ALERT_REQUIRED_ON" value="1" {% if settings.BRT_IS_ALERT_REQUIRED == '1' %}checked{% endif %}>
+                        <label for="BRT_IS_ALERT_REQUIRED_ON">SI</label>
+                        <span class="slide-button"></span>
+                    </div>
+                </div>
+                <fieldset>
+                    <legend>Etichetta</legend>
+                    <div class="row p-4">
+                        <div class="d-flex d-flex-100 justify-content-between align-items-center gap-2">
+                            <div class="form-group">
+                                <label>Stampa etichetta?</label>
+                                <div class="ps-switch ps-switch-lg ps-togglable-row ps-label-left">
+                                    <input type="radio" name="BRT_IS_LABEL_PRINTED" id="BRT_IS_LABEL_PRINTED_OFF" value="0" {% if settings.BRT_IS_LABEL_PRINTED == '0' %}checked{% endif %}>
+                                    <label for="BRT_IS_LABEL_PRINTED_OFF">NO</label>
+                                    <input type="radio" name="BRT_IS_LABEL_PRINTED" id="BRT_IS_LABEL_PRINTED_ON" value="1" {% if settings.BRT_IS_LABEL_PRINTED == '1' %}checked{% endif %}>
+                                    <label for="BRT_IS_LABEL_PRINTED_ON">SI</label>
+                                    <span class="slide-button"></span>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Tipo di stampa</label>
+                                <div class="ps-switch ps-switch-lg ps-togglable-row ps-label-left">
+                                    <input type="radio" name="BRT_LABEL_TYPE" id="BRT_LABEL_TYPE_PDF" value="PDF" {% if settings.BRT_LABEL_TYPE == 'PDF' %}checked{% endif %}>
+                                    <label for="BRT_LABEL_TYPE_PDF">PDF</label>
+                                    <input type="radio" name="BRT_LABEL_TYPE" id="BRT_LABEL_TYPE_ZPL" value="ZPL" {% if settings.BRT_LABEL_TYPE == 'ZPL' %}checked{% endif %}>
+                                    <label for="BRT_LABEL_TYPE_ZPL">ZPL</label>
+                                    <span class="slide-button"></span>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Stampa bordi?</label>
+                                <div class="ps-switch ps-switch-lg ps-togglable-row ps-label-left">
+                                    <input type="radio" name="BRT_IS_BORDER_PRINTED" id="BRT_IS_BORDER_PRINTED_OFF" value="0" {% if settings.BRT_IS_BORDER_PRINTED == '0' %}checked{% endif %}>
+                                    <label for="BRT_IS_BORDER_PRINTED_OFF">NO</label>
+                                    <input type="radio" name="BRT_IS_BORDER_PRINTED" id="BRT_IS_BORDER_PRINTED_ON" value="1" {% if settings.BRT_IS_BORDER_PRINTED == '1' %}checked{% endif %}>
+                                    <label for="BRT_IS_BORDER_PRINTED_ON">SI</label>
+                                    <span class="slide-button"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row p-4">
+                        <div class="d-flex d-flex-100 justify-content-between align-items-center gap-2">
+                            <div class="form-group">
+                                <label>Stampa barcode?</label>
+                                <div class="ps-switch ps-switch-lg ps-togglable-row ps-label-left">
+                                    <input type="radio" name="BRT_IS_BARCODE_PRINTED" id="BRT_IS_BARCODE_PRINTED_OFF" value="0" {% if settings.BRT_IS_BARCODE_PRINTED == '0' %}checked{% endif %}>
+                                    <label for="BRT_IS_BARCODE_PRINTED_OFF">NO</label>
+                                    <input type="radio" name="BRT_IS_BARCODE_PRINTED" id="BRT_IS_BARCODE_PRINTED_ON" value="1" {% if settings.BRT_IS_BARCODE_PRINTED == '1' %}checked{% endif %}>
+                                    <label for="BRT_IS_BARCODE_PRINTED_ON">SI</label>
+                                    <span class="slide-button"></span>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Stampa logo?</label>
+                                <div class="ps-switch ps-switch-lg ps-togglable-row ps-label-left">
+                                    <input type="radio" name="BRT_IS_LOGO_PRINTED" id="BRT_IS_LOGO_PRINTED_OFF" value="0" {% if settings.BRT_IS_LOGO_PRINTED == '0' %}checked{% endif %}>
+                                    <label for="BRT_IS_LOGO_PRINTED_OFF">NO</label>
+                                    <input type="radio" name="BRT_IS_LOGO_PRINTED" id="BRT_IS_LOGO_PRINTED_ON" value="1" {% if settings.BRT_IS_LOGO_PRINTED == '1' %}checked{% endif %}>
+                                    <label for="BRT_IS_LOGO_PRINTED_ON">SI</label>
+                                    <span class="slide-button"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row p-4">
+                        <div class="d-flex d-flex-100 justify-content-between align-items-center gap-2">
+                            <div class="form-group fixed-width-md">
+                                <label for="BRT_LABEL_OFFSET_X">Offset X</label>
+                                <div class="input-group">
+                                    <input type="number" name="BRT_LABEL_OFFSET_X" id="BRT_LABEL_OFFSET_X" class="form-control" value="{{ settings.BRT_LABEL_OFFSET_X }}">
+                                    <span class="input-group-text">mm</span>
+                                </div>
+                            </div>
+                            <div class="form-group fixed-width-md">
+                                <label for="BRT_LABEL_OFFSET_Y">Offset Y</label>
+                                <div class="input-group">
+                                    <input type="number" name="BRT_LABEL_OFFSET_Y" id="BRT_LABEL_OFFSET_Y" class="form-control" value="{{ settings.BRT_LABEL_OFFSET_Y }}">
+                                    <span class="input-group-text">mm</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </fieldset>
+            </div>
+            <div class="card-footer d-flex justify-content-center gap-2">
+                <button type="button" class="btn btn-primary" onclick="saveSettings();">Salva</button>
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('brt-label-settings-dialog').close();">Chiudi</button>
+            </div>
+        </div>
+    </form>
+</dialog>

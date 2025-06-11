@@ -223,46 +223,6 @@ const labelFormSections = [
                 maxLength: 15
             },
             {
-                id: "declaredParcelValue",
-                label: "Valore dichiarato",
-                name: "declaredParcelValue",
-                value: "",
-                default: "",
-                required: false,
-                type: "input:number"
-            },
-            {
-                id: "declaredParcelValueCurrency",
-                label: "Valuta valore dichiarato",
-                name: "declaredParcelValueCurrency",
-                value: "EUR",
-                default: "EUR",
-                required: false,
-                type: "input:text",
-                maxLength: 3
-            },
-            {
-                id: "insuranceAmount",
-                label: "Assicurazione",
-                name: "insuranceAmount",
-                value: "",
-                default: "",
-                required: false,
-                type: "input:number",
-                maxLength: 7,
-                decimal: 2
-            },
-            {
-                id: "insuranceAmountCurrency",
-                label: "Valuta assicurazione",
-                name: "insuranceAmountCurrency",
-                value: "EUR",
-                default: "EUR",
-                required: false,
-                type: "input:number",
-                maxLength: 3
-            },
-            {
                 id: "serviceType",
                 label: "Tipo servizio",
                 name: "serviceType",
@@ -384,7 +344,14 @@ const labelFormSections = [
                 required: false,
                 type: "input:text",
                 maxLength: 3
-            },
+            }
+        ]
+    },
+    // Sezione Avanzata (card a scomparsa)
+    {
+        section: "avanzate",
+        collapsed: true,
+        components: [
             {
                 id: "parcelsHandlingCode",
                 label: "Gestione colli",
@@ -429,14 +396,47 @@ const labelFormSections = [
                 required: false,
                 type: "switch",
                 maxLength: 1
-            }
-        ]
-    },
-    // Sezione Avanzata (card a scomparsa)
-    {
-        section: "avanzate",
-        collapsed: true,
-        components: [
+            },
+            {
+                id: "declaredParcelValue",
+                label: "Valore dichiarato",
+                name: "declaredParcelValue",
+                value: "",
+                default: "",
+                required: false,
+                type: "input:number"
+            },
+            {
+                id: "declaredParcelValueCurrency",
+                label: "Valuta valore dichiarato",
+                name: "declaredParcelValueCurrency",
+                value: "EUR",
+                default: "EUR",
+                required: false,
+                type: "input:text",
+                maxLength: 3
+            },
+            {
+                id: "insuranceAmount",
+                label: "Assicurazione",
+                name: "insuranceAmount",
+                value: "",
+                default: "",
+                required: false,
+                type: "input:number",
+                maxLength: 7,
+                decimal: 2
+            },
+            {
+                id: "insuranceAmountCurrency",
+                label: "Valuta assicurazione",
+                name: "insuranceAmountCurrency",
+                value: "EUR",
+                default: "EUR",
+                required: false,
+                type: "input:number",
+                maxLength: 3
+            },
             {
                 id: "consigneeVATNumber",
                 label: "Partita IVA destinatario",

@@ -25,16 +25,18 @@ class Account
 {
     public $userID;
     public $password;
+    public $departureDepot;
 
-    public function __construct($userID, $password)
+    public function __construct($userID, $password, $departureDepot)
     {
         $this->userID = $userID;
         $this->password = $password;
+        $this->departureDepot = $departureDepot;
     }
 
     public static function fromArray($arr)
     {
-        return new self($arr['userID'] ?? '', $arr['password'] ?? '');
+        return new self($arr['userID'] ?? '', $arr['password'] ?? '', $arr['departureDepot'] ?? '');
     }
 
     public function toArray()
@@ -42,6 +44,7 @@ class Account
         return [
             'userID' => $this->userID,
             'password' => $this->password,
+            'departureDepot' => $this->departureDepot,
         ];
     }
 }

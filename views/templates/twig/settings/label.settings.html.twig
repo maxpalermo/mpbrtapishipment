@@ -1,0 +1,49 @@
+<dialog id="brt-label-settings-dialog">
+    <form id="form-brt-label-settings" method="POST">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title">Impostazioni etichette</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-start align-items-center gap-2">
+                    <div class="form-group">
+                        <label>Ambiente</label>
+                        <div class="ps-switch ps-switch-lg ps-togglable-row ps-label-left">
+                            <input type="radio" name="BRT_ENVIRONMENT" id="BRT_ENVIRONMENT_TEST" value="TEST" {% if BRT_ENVIRONMENT == 'TEST' %}checked{% endif %}>
+                            <label for="BRT_ENVIRONMENT_TEST">Test</label>
+                            <input type="radio" name="BRT_ENVIRONMENT" id="BRT_ENVIRONMENT_PRODUCTION" value="PRODUCTION" {% if BRT_ENVIRONMENT == 'PRODUCTION' %}checked{% endif %}>
+                            <label for="BRT_ENVIRONMENT_PRODUCTION">Produzione</label>
+                            <span class="slide-button"></span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <fieldset>
+                            <legend>Sandbox</legend>
+                            <div class="form-group">
+                                <label for="BRT_SANDBOX_USER_ID">User ID</label>
+                                <input type="text" name="BRT_SANDBOX_USER_ID" id="BRT_SANDBOX_USER_ID" value="{{ BRT_SANDBOX_USER_ID }}">
+                            </div>
+                            <div class="form-group">
+                                <label for="BRT_SANDBOX_PASSWORD">Password</label>
+                                <input type="text" name="BRT_SANDBOX_PASSWORD" id="BRT_SANDBOX_PASSWORD" value="{{ BRT_SANDBOX_PASSWORD }}">
+                            </div>
+                        </fieldset>
+                    </div>
+                    <div class="form-group">
+                        <fieldset>
+                            <legend>Produzione</legend>
+                            <div class="form-group">
+                                <label for="BRT_PRODUCTION_USER_ID">User ID</label>
+                                <input type="text" name="BRT_PRODUCTION_USER_ID" id="BRT_PRODUCTION_USER_ID" value="{{ BRT_PRODUCTION_USER_ID }}">
+                            </div>
+                            <div class="form-group">
+                                <label for="BRT_PRODUCTION_PASSWORD">Password</label>
+                                <input type="text" name="BRT_PRODUCTION_PASSWORD" id="BRT_PRODUCTION_PASSWORD" value="{{ BRT_PRODUCTION_PASSWORD }}">
+                            </div>
+                        </fieldset>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</dialog>

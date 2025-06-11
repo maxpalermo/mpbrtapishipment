@@ -4,35 +4,40 @@ namespace MpSoft\MpBrtApiShipment\Api;
 
 class BrtAuthManager
 {
-    const ENV_REAL = 'real';
-    const ENV_SANDBOX = 'sandbox';
-
-    protected $realUserID;
-    protected $realPassword;
-    protected $sandboxUserID;
+    protected $conf;
+    protected $productionUserId;
+    protected $productionPassword;
+    protected $productionDepartureDepot;
+    protected $sandboxUserId;
     protected $sandboxPassword;
+    protected $sandboxDepartureDepot;
 
     public function __construct()
     {
+        // INIZIALIZZA LA CLASSE DI CONFIGURAZIONE
+        $this->conf = new BrtConfiguration();
+
         // Recupera i dati dalla configurazione PrestaShop
-        $this->realUserID = \Configuration::get('BRT_REAL_USERID');
-        $this->realPassword = \Configuration::get('BRT_REAL_PASSWORD');
-        $this->sandboxUserID = \Configuration::get('BRT_SANDBOX_USERID');
-        $this->sandboxPassword = \Configuration::get('BRT_SANDBOX_PASSWORD');
+        $this->productionUserId = $this->conf->get('production_user_id');
+        $this->productionPassword = $this->conf->get('production_password');
+        $this->productionDepartureDepot = $this->conf->get('production_departure_depot');
+        $this->sandboxUserId = $this->conf->get('sandbox_user_id');
+        $this->sandboxPassword = $this->conf->get('sandbox_password');
+        $this->sandboxDepartureDepot = $this->conf->get('sandbox_departure_depot');
     }
 
     /**
-     * Restituisce l'oggetto Account corretto in base all'ambiente scelto
+     * Restituisce l'oggetto Account corretto in base all'ambiente scelto.
      *
      * @return Account
      */
     public function getAccount()
     {
-        $env = \Configuration::get('BRT_ENVIRONMENT') ?: self::ENV_SANDBOX;
-        if ($env === self::ENV_SANDBOX) {
-            return new Account($this->sandboxUserID, $this->sandboxPassword);
+        $env = 'sandbox' == $this->conf->get('environment') ? 'sandbox' : 'production';
+        if ('sandbox' === $env) {
+            return new Account($this->sandboxUserId, $this->sandboxPassword, $this->sandboxDepartureDepot);
         }
 
-        return new Account($this->realUserID, $this->realPassword);
+        return new Account($this->productionUserId, $this->productionPassword, $this->productionDepartureDepot);
     }
 }

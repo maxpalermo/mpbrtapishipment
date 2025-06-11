@@ -1,0 +1,120 @@
+<div class="card shadow-sm border-0 mb-4">
+	<div class="card-header bg-white d-flex align-items-center" style="border-bottom: 1px solid #eee;">
+		<span id="datatable-title-icon" class="material-icons text-primary me-2">table_view</span>
+		<span id="datatable-title" class="fw-bold">Ultimo bordero</span>
+	</div>
+	<div class="card-body p-0">
+		<div class="table-responsive">
+			<table id="bordero-datatable" class="table table-hover table-striped align-middle mb-0" style="width:100%">
+				<thead>
+					<tr>
+						<th data-name="select" style="width:32px;" class="no-sort">
+							<input type="checkbox" id="check-all-rows"/>
+						</th>
+						<th data-name="id">ID</th>
+						<th data-name="bordero">Bordero</th>
+						<th data-name="numeric_sender_reference">Rif. Num.</th>
+						<th data-name="alphanumeric_sender_reference">Rif. AlfaNum.</th>
+						<th data-name="consignee_company_name">Destinatario</th>
+						<th data-name="consignee_address">Indirizzo</th>
+						<th data-name="consignee_zip_code">CAP</th>
+						<th data-name="consignee_city">Città</th>
+						<th data-name="consignee_province_abbreviation">Prov.</th>
+						<th data-name="consignee_country_abbreviation_iso_alpha_2">Paese</th>
+						<th data-name="consignee_contact_name">Contatto</th>
+						<th data-name="consignee_telephone">Telefono</th>
+						<th data-name="consignee_mobile_phone_number">Cellulare</th>
+						<th data-name="consignee_email">Email</th>
+						<th data-name="cash_on_delivery">Contrassegno</th>
+						<th data-name="number_of_parcels">Colli</th>
+						<th data-name="weight_kg">Peso (kg)</th>
+						<th data-name="volume_m3">Volume (m³)</th>
+						<th data-name="print_date">Data di stampa</th>
+						<th data-name="actions">Azioni</th>
+					</tr>
+				</thead>
+			</table>
+		</div>
+	</div>
+</div>
+
+<style>
+	#bordero-datatable {
+		background: #fff;
+		border-radius: 0.5rem;
+	}
+	#bordero-datatable thead th {
+		background: #f8f9fa;
+		font-weight: 600;
+		border-bottom: 2px solid #e3e3e3;
+	}
+	#bordero-datatable tbody tr:hover {
+		background: #f1f5fb;
+		transition: background 0.2s;
+	}
+	.card-header .material-icons {
+		font-size: 1.4em;
+		vertical-align: middle;
+	}
+	#bordero-datatable th,
+	#bordero-datatable td {
+		white-space: nowrap;
+		max-width: 180px;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+	.table-responsive {
+		overflow-x: unset;
+	}
+	@media(max-width: 991.98px) {
+		.table-responsive {
+			overflow-x: auto;
+		}
+		#bordero-datatable th,
+		#bordero-datatable td {
+			max-width: 120px;
+		}
+	}
+    .dataTables_wrapper {
+        width: 100%;
+        overflow-x: auto;
+    }
+</style>
+
+<script>
+    // Url Controller
+    const borderoUrl = '{{ path("mpbrtapishipment_admin_brt_bordero_get_table_data") }}';
+	const borderoHistoryUrl = '{{ path("mpbrtapishipment_admin_brt_bordero_get_history_table_data") }}';
+	const borderoPrintLabelsUrl = '{{ path("mpbrtapishipment_admin_brt_bordero_print_labels") }}';
+	const borderoPrintAllLabelsUrl = '{{ path("mpbrtapishipment_admin_brt_bordero_print_all_labels") }}';
+	const borderoNewLabelUrl = '{{ path("mpbrtapishipment_admin_brt_bordero_new_label") }}';
+	const borderoDeleteLabelUrl = '{{ path("mpbrtapishipment_admin_brt_bordero_delete_label") }}';
+    const borderoFillOrderDetailsUrl = '{{ path("mpbrtapishipment_admin_brt_bordero_fill_order_details") }}';
+	const borderoPreferencesUrl = '{{ path("mpbrtapishipment_admin_brt_bordero_preferences") }}';
+	const borderoPermissionsUrl = '{{ path("mpbrtapishipment_admin_brt_bordero_permissions") }}';
+    const borderoSaveSettingsUrl = '{{ path("mpbrtapishipment_admin_brt_bordero_save_settings") }}';
+    // Passa i dati dal controller Twig a JS
+    let borderoRows = null;
+    let searchBtn = null;
+    let searchInput = null;
+    let dt = null;
+    let dtRows = null;
+
+    const checkAllBorderoRows = document.getElementById('check-all-rows');
+    const table = document.getElementById('bordero-datatable');
+    if (checkAllBorderoRows && table) {
+        checkAllBorderoRows.addEventListener('change', function () {
+            const checkboxes = table.querySelectorAll('.row-checkbox');
+            checkboxes.forEach(cb => {
+                cb.checked = checkAllBorderoRows.checked;
+            });
+        });
+        table.addEventListener('change', function (e) {
+            if (e.target.classList.contains('row-checkbox')) {
+                const checkboxes = table.querySelectorAll('.row-checkbox');
+                const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+                checkAllBorderoRows.checked = allChecked;
+            }
+        });
+    }
+</script>

@@ -1,0 +1,16 @@
+services:
+  MpSoft\MpBrtApiShipment\Services\GetOrderLabelDetails:
+    arguments:
+      - "@doctrine.dbal.default_connection"
+    public: true
+    autowire: true
+    autoconfigure: true
+
+  MpSoft\MpBrtApiShipment\Controllers\Admin\AdminBrtBorderoController:
+    arguments:
+      $getOrderLabelDetails: '@MpSoft\MpBrtApiShipment\Services\GetOrderLabelDetails'
+      $context: '@prestashop.adapter.legacy.context'
+      $translator: '@translator'
+    public: true
+    autowire: true
+    autoconfigure: true

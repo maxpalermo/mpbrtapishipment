@@ -177,14 +177,6 @@
                             <label for="alphanumericSenderReference">ID alfanumerico</label>
                             <input type="text" id="alphanumericSenderReference" name="alphanumericSenderReference" value="{if isset($formData.alphanumericSenderReference)}{$formData.alphanumericSenderReference|escape:'html':'UTF-8'}{/if}">
                         </div>
-                        <div class="brt-form-group" style="min-width: 8rem; max-width: auto;">
-                            <label for="declaredParcelValue">Valore dichiarato (€)</label>
-                            <input type="number" step="0.01" min="0" id="declaredParcelValue" name="declaredParcelValue" value="{if isset($formData.declaredParcelValue)}{$formData.declaredParcelValue|escape:'html':'UTF-8'}{/if}">
-                        </div>
-                        <div class="brt-form-group" style="min-width: 8rem; max-width: auto;">
-                            <label for="insuranceAmount">Assicurazione (€)</label>
-                            <input type="number" step="0.01" min="0" id="insuranceAmount" name="insuranceAmount" value="{if isset($formData.insuranceAmount)}{$formData.insuranceAmount|escape:'html':'UTF-8'}{/if}">
-                        </div>
                     </div>
                     <div class="brt-form-row">
                         <div class="brt-form-group" style="max-width: 20%">
@@ -282,13 +274,13 @@
                             </select>
                         </div>
                         <div class="brt-form-group" style="max-width: 130px;">
-                            <label for="isAlertRequired">Alert?</label>
+                            <label for="isAlertRequired">Invia Messaggio al cliente</label>
                             <div class="text-center">
-                                <div class="ps-switch ps-switch-lg ps-switch-nolabel ps-switch-center ps-togglable-row">
+                                <div class="ps-switch ps-switch-lg ps-switch-nolabel ps-switch-center ps-togglable-row disabled">
                                     <input type="radio" name="isAlertRequired" id="input-false-isAlertRequired" value="0" {if $formData.isAlertRequired == 0}checked{/if}>
                                     <label for="input-false-isAlertRequired">Off</label>
                                     <input type="radio" name="isAlertRequired" id="input-true-isAlertRequired" value="1" {if $formData.isAlertRequired == 1}checked{/if}>
-                                    <label for="input-true-isCODMandatory">On</label>
+                                    <label for="input-true-isAlertRequired">On</label>
                                     <span class="slide-button"></span>
                                 </div>
                             </div>
@@ -319,6 +311,14 @@
         </div>
         <div class="card-body">
             <div class="brt-form-row">
+                <div class="brt-form-group" style="min-width: 8rem; max-width: auto;">
+                    <label for="declaredParcelValue">Valore dichiarato (€)</label>
+                    <input type="number" step="0.01" min="0" id="declaredParcelValue" name="declaredParcelValue" value="{if isset($formData.declaredParcelValue)}{$formData.declaredParcelValue|escape:'html':'UTF-8'}{/if}">
+                </div>
+                <div class="brt-form-group" style="min-width: 8rem; max-width: auto;">
+                    <label for="insuranceAmount">Assicurazione (€)</label>
+                    <input type="number" step="0.01" min="0" id="insuranceAmount" name="insuranceAmount" value="{if isset($formData.insuranceAmount)}{$formData.insuranceAmount|escape:'html':'UTF-8'}{/if}">
+                </div>
                 <div class="brt-form-group">
                     <label for="consigneeVATNumber">P.IVA destinatario</label>
                     <input type="text" id="consigneeVATNumber" name="consigneeVATNumber" maxlength="16">

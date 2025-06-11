@@ -41,7 +41,11 @@ class ModelBrtShipmentResponse extends \ObjectModel
     public $consignee_zip_code;
     public $consignee_city;
     public $consignee_province_abbreviation;
-    public $consignee_country_abbreviation_brt;
+    public $consignee_country_abbreviation_iso_alpha_2;
+    public $consignee_contact_name;
+    public $consignee_telephone;
+    public $consignee_mobile_phone_number;
+    public $consignee_email;
     public $cash_on_delivery;
     public $number_of_parcels;
     public $weight_kg;
@@ -71,7 +75,11 @@ class ModelBrtShipmentResponse extends \ObjectModel
             'consignee_zip_code' => ['type' => self::TYPE_STRING, 'validate' => 'isAnything'],
             'consignee_city' => ['type' => self::TYPE_STRING, 'validate' => 'isAnything'],
             'consignee_province_abbreviation' => ['type' => self::TYPE_STRING, 'validate' => 'isAnything'],
-            'consignee_country_abbreviation_brt' => ['type' => self::TYPE_STRING, 'validate' => 'isAnything'],
+            'consignee_country_abbreviation_iso_alpha_2' => ['type' => self::TYPE_STRING, 'validate' => 'isAnything'],
+            'consignee_contact_name' => ['type' => self::TYPE_STRING, 'validate' => 'isGenericName', 'size' => 35],
+            'consignee_telephone' => ['type' => self::TYPE_STRING, 'validate' => 'isPhoneNumber', 'size' => 16],
+            'consignee_mobile_phone_number' => ['type' => self::TYPE_STRING, 'validate' => 'isPhoneNumber', 'size' => 16],
+            'consignee_email' => ['type' => self::TYPE_STRING, 'validate' => 'isEmail', 'size' => 70],
             'cash_on_delivery' => ['type' => self::TYPE_FLOAT, 'validate' => 'isFloat'],
             'number_of_parcels' => ['type' => self::TYPE_INT, 'validate' => 'isUnsignedInt'],
             'weight_kg' => ['type' => self::TYPE_FLOAT, 'validate' => 'isFloat'],

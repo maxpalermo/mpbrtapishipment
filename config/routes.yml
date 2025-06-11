@@ -1,16 +1,103 @@
 # modules/mpbrtapishipment/config/routes.yml
 
-mpbrtapishipment_admin_bordero:
+mpbrtapishipment_admin_brt_bordero_index:
     path: /admin/brt/bordero
     defaults:
-        _controller: 'MpSoft\MpBrtApiShipment\Controllers\Admin\Improve\AdminParentShipping\BrtBorderoController::showLastPendingBorderoAction'
+        _controller: 'MpSoft\MpBrtApiShipment\Controllers\Admin\AdminBrtBorderoController::indexAction'
         _legacy_controller: "AdminBrtBordero"
         _legacy_link: "AdminBrtBordero"
 
-mpbrtapishipment_admin_printlabel:
+mpbrtapishipment_admin_brt_bordero_get_table_data:
+    path: /admin/brt/bordero/getTableData
+    defaults:
+        _controller: 'MpSoft\MpBrtApiShipment\Controllers\Admin\AdminBrtBorderoController::getTableDataAction'
+        _legacy_controller: "AdminBrtBordero"
+        _legacy_link: "AdminBrtBordero"
+    methods: [POST]
+
+mpbrtapishipment_admin_brt_bordero_get_history_table_data:
+    path: /admin/brt/bordero/getHistoryTableData
+    defaults:
+        _controller: 'MpSoft\MpBrtApiShipment\Controllers\Admin\AdminBrtBorderoController::getHistoryTableDataAction'
+        _legacy_controller: "AdminBrtBordero"
+        _legacy_link: "AdminBrtBordero"
+    methods: [POST]
+
+mpbrtapishipment_admin_brt_bordero_print_labels:
+    path: /admin/brt/bordero/printLabels
+    defaults:
+        _controller: 'MpSoft\MpBrtApiShipment\Controllers\Admin\AdminBrtBorderoController::printLabelsAction'
+        _legacy_controller: "AdminBrtBordero"
+        _legacy_link: "AdminBrtBordero"
+    methods: [POST]
+
+mpbrtapishipment_admin_brt_bordero_print_all_labels:
+    path: /admin/brt/bordero/printAllLabels
+    defaults:
+        _controller: 'MpSoft\MpBrtApiShipment\Controllers\Admin\AdminBrtBorderoController::printAllLabelsAction'
+        _legacy_controller: "AdminBrtBordero"
+        _legacy_link: "AdminBrtBordero"
+    methods: [POST]
+
+mpbrtapishipment_admin_brt_bordero_new_label:
+    path: /admin/brt/bordero/newLabel
+    defaults:
+        _controller: 'MpSoft\MpBrtApiShipment\Controllers\Admin\AdminBrtBorderoController::newLabelAction'
+        _legacy_controller: "AdminBrtBordero"
+        _legacy_link: "AdminBrtBordero"
+    methods: [POST]
+
+mpbrtapishipment_admin_brt_bordero_fill_order_details:
+    path: /admin/brt/bordero/fillOrderDetails
+    defaults:
+        _controller: 'MpSoft\MpBrtApiShipment\Controllers\Admin\AdminBrtBorderoController::fillOrderDetailsAction'
+        _legacy_controller: "AdminBrtBordero"
+        _legacy_link: "AdminBrtBordero"
+    methods: [POST]
+
+mpbrtapishipment_admin_brt_bordero_preferences:
+    path: /admin/brt/bordero/preferences
+    defaults:
+        _controller: 'MpSoft\MpBrtApiShipment\Controllers\Admin\AdminBrtBorderoController::showPreferencesAction'
+        _legacy_controller: "AdminBrtBordero"
+        _legacy_link: "AdminBrtBordero"
+    methods: [GET]
+
+mpbrtapishipment_admin_brt_bordero_permissions:
+    path: /admin/brt/bordero/permissions
+    defaults:
+        _controller: 'MpSoft\MpBrtApiShipment\Controllers\Admin\AdminBrtBorderoController::showPermissionsAction'
+        _legacy_controller: "AdminBrtBordero"
+        _legacy_link: "AdminBrtBordero"
+    methods: [GET]
+
+mpbrtapishipment_admin_brt_bordero_save_settings:
+    path: /admin/brt/bordero/saveSettings
+    defaults:
+        _controller: 'MpSoft\MpBrtApiShipment\Controllers\Admin\AdminBrtBorderoController::saveSettingsAction'
+        _legacy_controller: "AdminBrtBordero"
+        _legacy_link: "AdminBrtBordero"
+    methods: [POST]
+
+mpbrtapishipment_admin_brt_bordero_delete_label:
+    path: /admin/brt/bordero/deleteLabel
+    defaults:
+        _controller: 'MpSoft\MpBrtApiShipment\Controllers\Admin\AdminBrtBorderoController::deleteLabelAction'
+        _legacy_controller: "AdminBrtBordero"
+        _legacy_link: "AdminBrtBordero"
+    methods: [POST]
+
+mpbrtapishipment_admin_brt_bordero:
+    path: /admin/brt/bordero
+    defaults:
+        _controller: 'MpSoft\MpBrtApiShipment\Controllers\Admin\AdminBrtBorderoController::showLastPendingBorderoAction'
+        _legacy_controller: "AdminBrtBordero"
+        _legacy_link: "AdminBrtBordero"
+
+mpbrtapishipment_admin_brt_printlabel:
     path: /admin/brt/printlabel/{id_bordero}
     defaults:
-        _controller: 'MpSoft\MpBrtApiShipment\Controllers\Admin\Improve\AdminParentShipping\BrtBorderoController::printLabelAction'
+        _controller: 'MpSoft\MpBrtApiShipment\Controllers\Admin\AdminBrtBorderoController::printLabelAction'
         _legacy_controller: "AdminBrtBordero"
         _legacy_link: "AdminBrtBordero"
 

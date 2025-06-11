@@ -79,7 +79,7 @@ class MpBrtApiShipment extends Module
     {
         $tab = new Tab();
         $tab->active = 1;
-        $tab->class_name = 'AdminBrtShippingBordero';
+        $tab->class_name = 'AdminBrtBordero';
         $tab->name = [];
         foreach (Language::getLanguages(true) as $lang) {
             $tab->name[$lang['id_lang']] = 'Borderò BRT';
@@ -102,6 +102,12 @@ class MpBrtApiShipment extends Module
     {
         $tab = new Tab();
         $tab->class_name = 'AdminBrtShippingBordero';
+        $tab->module = $this->name;
+
+        $tab->delete();
+
+        $tab = new Tab();
+        $tab->class_name = 'AdminBrtBordero';
         $tab->module = $this->name;
 
         return $tab->delete();

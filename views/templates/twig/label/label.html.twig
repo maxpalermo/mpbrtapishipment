@@ -1,0 +1,290 @@
+<dialog id="brt-label-dialog">
+	<style>
+    .grow-1 {
+        flex-grow: 1;
+    }
+    .gap-2 {
+        gap: 0.5rem;
+    }
+    .fixed-width-xl {
+        width: 300px;
+    }
+    .fixed-width-lg {
+        width: 250px;
+    }
+    .fixed-width-md {
+        width: 200px;
+    }
+    .fixed-width-sm {
+        width: 150px;
+    }
+    .fixed-width-xs {
+        width: 100px;
+    }
+    .input-group-addon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 6px;
+        border: 1px solid #ccc;
+        border-left: none;
+    }
+    </style>
+    <form id="form-brt-label" method="POST">
+        <input type="hidden" id="isAlertRequired" name="isAlertRequired" value="1">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title">Etichetta</h5>
+                {% if showOrderIdSearch %}
+                <h5 class="card-title">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="search-container d-flex justify-content-start align-items-center">
+                            <div class="form-group fixed-width-lg">
+                                <label for="search-order-id">Inserisci l'id ordine da cercare</label>
+                                <input type="text" id="search-order-id" name="order-id" class="form-control text-center">
+                            </div>
+                            <button type="button" class="btn btn-primary" id="search-order-id-button" style="margin-top: 7px; height: 42px;" data-input-id="search-order-id" onclick="fillOrderDetails(this);">Cerca</button>
+                        </div>
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-info dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
+                                <span class="visually-hidden">Etichetta</span>
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <a class="dropdown-item" href="javascript:void(0);" onclick="newBrtLabel();">
+                                        <span class="material-icons mr-2">add</span>
+                                        <span>Nuova etichetta</span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="javascript:void(0);" onclick="loadBrtLabelData();">
+                                        <span class="material-icons mr-2">cloud_upload</span>
+                                        <span>Carica etichetta</span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="javascript:void(0);" onclick="document.getElementById('brt-label-dialog').close();">
+                                        <span class="material-icons mr-2">close</span>
+                                        <span>Chiudi etichetta</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </h5>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                <section id="consignee-section">
+                <div class="d-flex justify-content-start align-items-center gap-2">
+                    <div class="form-group fixed-width-lg">
+                        <label for="numeric_sender_reference">Rif. numerico</label>
+                        <div class="input-group">
+                            <input type="text" id="numeric_sender_reference" name="numeric_sender_reference" class="form-control" maxlength="15">
+                            <span class="input-group-addon">
+                                <span class="material-icons">key</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="form-group fixed-width-lg">
+                        <label for="alphanumeric_sender_reference">Rif. alfanumerico</label>
+                        <div class="input-group">
+                            <input type="text" id="alphanumeric_sender_reference" name="alphanumeric_sender_reference" class="form-control" maxlength="15">
+                            <span class="input-group-addon">
+                                <span class="material-icons">key</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="form-group grow-1">
+                        <label for="consignee_company_name">Nome destinatario</label>
+                        <div class="input-group">
+                            <input type="text" id="consignee_company_name" name="consignee_company_name" class="form-control" maxlength="70">
+                            <span class="input-group-addon">
+                                <span class="material-icons">person</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="form-group grow-1">
+                        <label for="consignee_contact_name">Nome contatto destinatario</label>
+                        <div class="input-group">
+                            <input type="text" id="consignee_contact_name" name="consignee_contact_name" class="form-control" maxlength="35">
+                            <span class="input-group-addon">
+                                <span class="material-icons">person</span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-start align-items-center gap-2">
+                    <div class="form-group grow-1">
+                        <label for="consignee_address">Indirizzo destinatario</label>
+                        <div class="input-group">
+                            <input type="text" id="consignee_address" name="consignee_address" class="form-control" maxlength="35" minlength="6">
+                            <span class="input-group-addon">
+                                <span class="material-icons">home</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="form-group fixed-width-sm">
+                        <label for="consignee_zip_code">CAP destinatario</label>
+                        <div class="input-group">
+                            <input type="text" id="consignee_zip_code" name="consignee_zip_code" class="form-control" maxlength="9" minlength="0">
+                            <span class="input-group-addon">
+                                <span class="material-icons">home</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="form-group grow-1">
+                        <label for="consignee_city">Città destinatario</label>
+                        <div class="input-group">
+                            <input type="text" id="consignee_city" name="consignee_city" class="form-control" maxlength="35" minlength="0">
+                            <span class="input-group-addon">
+                                <span class="material-icons">home</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="form-group fixed-width-xs">
+                        <label for="consignee_province_abbreviation">Provincia</label>
+                        <div class="input-group">
+                            <input type="text" id="consignee_province_abbreviation" name="consignee_province_abbreviation" class="form-control" maxlength="2" minlength="0">
+                            <span class="input-group-addon">
+                                <span class="material-icons">home</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="form-group fixed-width-xs">
+                        <label for="consignee_country_abbreviation_iso_alpha_2">Stato</label>
+                        <div class="input-group">
+                            <input type="text" id="consignee_country_abbreviation_iso_alpha_2" name="consignee_country_abbreviation_iso_alpha_2" class="form-control" maxlength="2" minlength="2">
+                            <span class="input-group-addon">
+                                <span class="material-icons">home</span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-start align-items-center gap-2">
+                    <div class="form-group">
+                        <label for="consignee_telephone">Telefono destinatario</label>
+                        <div class="input-group">
+                            <input type="text" id="consignee_telephone" name="consignee_telephone" class="form-control" maxlength="16">
+                            <span class="input-group-addon">
+                                <span class="material-icons">phone</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="consignee_mobile_phone_number">Cellulare destinatario</label>
+                        <div class="input-group">
+                            <input type="text" id="consignee_mobile_phone_number" name="consignee_mobile_phone_number" class="form-control" maxlength="16">
+                            <span class="input-group-addon">
+                                <span class="material-icons">phone</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="form-group grow-1">
+                        <label for="consignee_email">Email destinatario</label>
+                        <div class="input-group">
+                            <input type="email" id="consignee_email" name="consignee_email" class="form-control" maxlength="70">
+                            <span class="input-group-addon">
+                                <span class="material-icons">email</span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <section id="parcel-section">
+                    <div class="d-flex justify-content-start align-items-center gap-2">
+                        <div class="form-group fixed-width-lg">
+                            <label for="service_type">Tipo servizio</label>
+                            <div class="input-group">
+                                <select id="service_type" name="service_type" class="form-control" disabled>
+                                    <option value="DEF">Default</option>
+                                    <option value="E">Espresso</option>
+                                    <option value="H">10:30</option>
+                                </select>
+                                <span class="input-group-addon">
+                                    <span class="material-icons">settings</span>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="form-group fixed-width-lg">
+                            <label for="network">Network</label>
+                            <div class="input-group">
+                                <select id="network" name="network" class="form-control">
+                                    <option value="">Nazionale</option>
+                                    <option value="D">DPD</option>
+                                    <option value="E">EURO EXPRESS</option>
+                                    <option value="S">FED</option>
+                                </select>
+                                <span class="input-group-addon">
+                                    <span class="material-icons">settings</span>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="form-group fixed-width-lg">
+                            <label for="delivery_freight_type_code">Tipo spedizione</label>
+                            <div class="input-group">
+                                <select id="delivery_freight_type_code" name="delivery_freight_type_code" class="form-control">
+                                    <option value="1">FRANCO</option>
+                                    <option value="2">ASSEGNATO</option>
+                                    <option value="4">FRANCO +C/ASSEGNO</option>
+                                    <option value="6">ASSEGNATO +C/ASSEGNO</option>
+                                </select>
+                                <span class="input-group-addon">
+                                    <span class="material-icons">local_shipping</span>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="form-group fixed-width-lg">
+                            <label for="sender_parcel_type">Natura merce</label>
+                            <div class="input-group">
+                                <input type="text" name="sender_parcel_type" id="sender_parcel_type" class="form-control" maxlength="15">
+                                <span class="input-group-addon">
+                                    <span class="material-icons">chat_bubble</span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                <section id="cash-section">
+                    <div class="d-flex justify-content-start align-items-center gap-2">
+                        <div class="form-group fixed-width-sm">
+                            <label for="is_cod_mandatory">Contrassegno</label>
+                            <div class="ps-switch ps-switch-lg ps-togglable-row">
+                                <input type="radio" name="is_cod_mandatory" id="is_cod_mandatory-off" value="0" onclick="toggleCashOnDelivery(0)">
+                                <label for="is_cod_mandatory-off"></label>
+                                <input type="radio" name="is_cod_mandatory" id="is_cod_mandatory-on" value="1" onclick="toggleCashOnDelivery(1)">
+                                <label for="is_cod_mandatory-on"></label>
+                                <span class="slide-button"></span>
+                            </div>
+                        </div>
+                        <div class="form-group fixed-width-lg">
+                            <label for="cash_on_delivery">Importo contrassegno</label>
+                            <div class="input-group">
+                                <input type="number" name="cash_on_delivery" id="cash_on_delivery" class="form-control text-right" step="0.01" min="0" max="999" value="0" disabled>
+                                <input type="hidden" name="cod_currency" id="cod_currency" value="{{ cod_currency }}">
+                                <span class="input-group-addon">
+                                    <span class="text-addon">{{ cod_currency }}</span>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="form-group grow-1">
+                            <label for="cod_payment_type">Tipo pagamento</label>
+                            <div class="input-group">
+                                <select id="cod_payment_type" name="cod_payment_type" class="form-control" disabled>
+                                    <option value="">ACCETTARE CONTANTE</option>
+                                    <option value="BM">ACCETTARE ASSEGNO BANCARIO INTESTATO ALLA MITTENTE</option>
+                                    <option value="CM">ACCETTARE ASSEGNO CIRCOLARE INTESTATO ALLA MITTENTE</option>
+                                    <option value="BB">ACCETTARE ASSEGNO BANCARIO INTESTATO CORRIERE CON MANLEVA</option>
+                                    <option value="OM">ACCETTARE ASSEGNO INTESTATO AL MITTENTE ORIGINALE</option>
+                                    <option value="OC">ACCETTARE ASSEGNO CIRCOLARE INTESTATO AL MITTENTE ORIGINALE</option>
+                                </select>
+                                <span class="input-group-addon">
+                                    <span class="material-icons">payment</span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+	</form>
+</dialog>

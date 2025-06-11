@@ -25,14 +25,14 @@ class Network
 {
     public const VABCODE = 'VABATB';
     public const DPD = 'D';
-    public const EURO_EXPress = 'E';
+    public const EURO_EXPRESS = 'E';
     public const FED = 'S';
 
     public static function getNetworks()
     {
         return [
             self::DPD => 'DPD',
-            self::EURO_EXPress => 'Euro Express',
+            self::EURO_EXPRESS => 'Euro Express',
             self::FED => 'FED',
         ];
     }

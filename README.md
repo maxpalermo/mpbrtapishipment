@@ -46,7 +46,6 @@ Nella sezione "Preferenze" del modulo puoi configurare i seguenti parametri:
 | `BRT_SENDER_CUSTOMER_CODE`                 | Codice mittente                                                    |
 | `BRT_PRICING_CONDITION_CODE`               | Codice condizioni tariffarie                                       |
 
-
 > **Nota:** Alcuni parametri potrebbero essere richiesti solo per specifiche funzioni o servizi BRT.
 
 ## Utilizzo
@@ -54,7 +53,7 @@ Nella sezione "Preferenze" del modulo puoi configurare i seguenti parametri:
 - Utilizza le azioni rapide per generare nuove etichette, stampare, caricare dati o modificare le preferenze.
 - Per modificare le impostazioni, clicca su "Preferenze" e salva i parametri desiderati.
 
-### Nuova funzionalità: Integrazione bilancia fiscale tramite endpoint AutoWeight
+## Integrazione bilancia fiscale tramite endpoint AutoWeight
 
 Il modulo espone un endpoint dedicato per ricevere i dati di pesatura direttamente da una bilancia fiscale o da dispositivi esterni tramite chiamata HTTP parametrizzata.
 
@@ -81,21 +80,123 @@ https://tuosito.it/module/mpbrtapishipment/AutoWeight?PECOD=12345&PPESO=10.5&PVO
 
 L'endpoint restituisce una risposta JSON con conferma di ricezione dei dati. Puoi personalizzare la logica di gestione dei dati nel controller `AutoWeightController.php` del modulo.
 
-## Supporto
-Per assistenza tecnica o richieste di nuove funzionalità, contatta:
-- **Autore:** Massimiliano Palermo <maxx.palermo@gmail.com>
+## Guida pratica: Doctrine ORM in PrestaShop 8
 
-## Licenza
-Questo modulo è distribuito sotto licenza [AFL-3.0](https://opensource.org/licenses/AFL-3.0).
+Questa guida raccoglie i passaggi fondamentali per integrare Doctrine ORM in un modulo PrestaShop 8: dalla creazione delle entity, ai service CRUD, fino alla configurazione dei file YAML e all'uso pratico per leggere/scrivere dati.
 
----
+### 1. Panoramica: Leggere e scrivere dati con Doctrine ORM in PrestaShop 8
 
-## Utilizzo avanzato: Entity Doctrine e Service CRUD per risposte BRT
+- **Entity**: rappresenta una tabella del database come classe PHP.
+- **Service**: classe che incapsula la logica CRUD (Create, Read, Update, Delete) usando l'EntityManager Doctrine.
+- **EntityManager**: oggetto fornito da Doctrine per gestire tutte le operazioni sulle entity.
+- **Repository**: oggetto che permette query personalizzate sulle entity.
 
-### 1. Configurazione Doctrine per il modulo
+### Esempio di lettura e scrittura dati
+```php
+// Lettura
+$label = $entityManager->getRepository(ProductLabel::class)->find($id);
+$labels = $entityManager->getRepository(ProductLabel::class)->findAll();
 
-Assicurati che il file `config/doctrine.yaml` del modulo contenga:
+// Scrittura
+$label = new ProductLabel();
+$label->setLabelName('Nuova Etichetta');
+$entityManager->persist($label);
+$entityManager->flush();
 
+// Modifica
+$label->setLabelName('Etichetta aggiornata');
+$entityManager->flush();
+
+// Cancellazione
+$entityManager->remove($label);
+$entityManager->flush();
+```
+
+### 2. Creazione di una Entity Doctrine
+
+#### Nome della classe Entity
+La classe Entity **deve chiamarsi ESATTAMENTE come la tabella che esiste nel database, senza il prefisso**.
+- Esempio: se la tabella è `ps_product_comment`, la classe sarà `ProductComment` (o `ProductCommentEntity` se vuoi mantenere il suffisso `Entity`).
+- Le tabelle e le colonne nel database devono essere in `snake_case`.
+- I nomi delle classi Entity e degli attributi devono essere in `PascalCase` (UpperCamelCase) per le classi e `camelCase` per le proprietà.
+
+#### Esempio
+```php
+// Tabella: ps_product_comment
+namespace MyModule\Entity;
+
+use Doctrine\ORM\Mapping as ORM;
+
+/**
+ * @ORM\Table()
+ * @ORM\Entity()
+ */
+class ProductComment
+{
+    /**
+     * @ORM\Id
+     * @ORM\GeneratedValue(strategy="AUTO")
+     * @ORM\Column(type="integer", name="id_product_comment")
+     */
+    private int $id;
+    // ... altre proprietà ...
+}
+```
+
+#### Annotazioni della tabella
+L'annotazione della tabella deve essere:
+```php
+/**
+ * @ORM\Table()
+ * @ORM\Entity()
+ */
+```
+
+> **NON** specificare il nome della tabella nell'annotazione! PrestaShop ricava il nome della tabella dalla classe e aggiunge automaticamente il prefisso corretto (`ps_`).
+
+- Usa sempre le annotation Doctrine in docblock (/** @ORM\... */) e specifica il nome della colonna in snake_case con l'attributo `name`.
+
+### 3. Creazione di un Repository CRUD
+
+#### Repository: default e custom
+
+#### Repository di default
+Puoi usare il repository standard Doctrine:
+```php
+/** @var EntityManagerInterface $entityManager */
+$entityManager = $this->container->get('doctrine.orm.entity_manager');
+$productCommentRepository = $entityManager->getRepository(ProductComment::class);
+```
+
+#### Repository custom
+Se vuoi aggiungere metodi personalizzati, crea una classe repository:
+```php
+namespace MyModule\Repository;
+
+use Doctrine\ORM\EntityRepository;
+
+class ProductCommentRepository extends EntityRepository
+{
+    // Metodi custom qui
+}
+```
+E poi nel mapping dell'entity:
+```php
+/**
+ * @ORM\Table()
+ * @ORM\Entity(repositoryClass="MyModule\\Repository\\ProductCommentRepository")
+ */
+```
+Così puoi usare sia i metodi base che i tuoi custom:
+```php
+$productCommentRepository = $entityManager->getRepository(ProductComment::class);
+$productCommentRepository->find($id);
+$productCommentRepository->findByCustomCriteria(...);
+```
+
+### 4. Configurazione di doctrine.yaml
+
+**File:** `config/doctrine.yaml`
 ```yaml
 doctrine:
   orm:
@@ -108,12 +209,53 @@ doctrine:
         alias: Mpbrtapishipment
 ```
 
-### 2. Entity: BrtShipmentResponse
+### 5. Configurazione di services.yml
 
+**File:** `config/services.yml`
+```yaml
+services:
+  Mpbrtapishipment\Services\ModelBrtShipmentResponseService:
+    arguments:
+      - '@doctrine.orm.entity_manager'
+```
+
+### 6. Configurazione di routes.yml (solo per controller custom)
+
+**File:** `config/routes.yml`
+```yaml
+yourmodule_productlabel:
+  path: /admin/product-label
+  methods: [GET]
+  defaults:
+    _controller: 'YourModuleNamespace\Controller\Admin\ProductLabelController::index'
+```
+
+### 7. Consigli pratici
+- Usa sempre property camelCase in PHP, ma specifica `name="snake_case"` nelle annotation per compatibilità DB.
+- Per query personalizzate, crea metodi nel service che usano il repository Doctrine.
+- Per debug, puoi loggare `$sql` e i parametri bindati separatamente.
+- In PrestaShop 8, l'autowiring funziona se registri i service in `services.yml` e usi il namespace corretto.
+- Usa repository di default o custom a seconda delle esigenze
+- PrestaShop aggiunge il prefisso alle tabelle in automatico
+
+### Esempio di utilizzo nel controller
+```php
+public function indexAction(ProductCommentRepository $repo)
+{
+    $comments = $repo->findAll();
+    // ...
+}
+```
+
+## Utilizzo avanzato: Entity Doctrine e Service CRUD per risposte BRT
+
+### 1. Configurazione Doctrine per il modulo
+Assicurati che il file `config/doctrine.yaml` del modulo contenga la sezione sopra indicata.
+
+### 2. Entity: BrtShipmentResponse
 La classe `BrtShipmentResponse` rappresenta la tabella `ps_brt_shipment_response` e si trova in `src/Entity/BrtShipmentResponse.php`. Tutti i campi della tabella sono mappati come proprietà Doctrine con getter e setter.
 
 ### 3. Service: ModelBrtShipmentResponseService
-
 Il service `ModelBrtShipmentResponseService` (in `src/Services/ModelBrtShipmentResponseService.php`) offre metodi CRUD per gestire le risposte BRT:
 - `save(BrtShipmentResponse $entity)` — Salva o aggiorna una risposta
 - `find(int $id)` — Trova una risposta per ID
@@ -121,8 +263,7 @@ Il service `ModelBrtShipmentResponseService` (in `src/Services/ModelBrtShipmentR
 - `remove(BrtShipmentResponse $entity)` — Elimina una risposta
 - `findBy(array $criteria)` — Ricerca avanzata
 
-#### Esempio di utilizzo in un controller Symfony/PrestaShop
-
+### Esempio di utilizzo in un controller Symfony/PrestaShop
 ```php
 use Mpbrtapishipment\Entity\BrtShipmentResponse;
 use Mpbrtapishipment\Services\ModelBrtShipmentResponseService;
@@ -154,11 +295,9 @@ public function someAction(ModelBrtShipmentResponseService $service)
 
 ### 4. Creazione automatica della tabella
 Se hai accesso alla console Symfony, puoi generare la tabella con:
-
 ```
 php bin/console doctrine:schema:update --force
 ```
-
 Oppure, crea la tabella manualmente con la query SQL fornita all'inizio di questa documentazione.
 
 ### 5. Gestione etichette (Label) con Doctrine
@@ -177,8 +316,7 @@ Il service `BrtShipmentResponseService` (in `src/Services/BrtShipmentResponseSer
 - Metodo `saveLabels($idBrtShipmentResponse, $labels)` per inserire/aggiornare in batch un array di etichette (ad esempio dalla risposta Bartolini).
 - CRUD base: `find`, `findAll`, `remove`.
 
-**Esempio di utilizzo in un controller Symfony/PrestaShop:**
-
+#### Esempio di utilizzo in un controller Symfony/PrestaShop:
 ```php
 use MpSoft\MpBrtApiShipment\Services\BrtShipmentResponseService;
 
@@ -211,15 +349,9 @@ public function saveLabelsAction(BrtShipmentResponseService $labelService)
 }
 ```
 
-**CRUD di base sulle label:**
-```php
-// Lettura di una label
-$label = $labelService->find($id);
-// Tutte le label
-$allLabels = $labelService->findAll();
-// Eliminazione
-$labelService->remove($label);
-```
+## Supporto
+Per assistenza tecnica o richieste di nuove funzionalità, contatta:
+- **Autore:** Massimiliano Palermo <maxx.palermo@gmail.com>
 
 - Il metodo `saveLabels` aggiorna la label se esiste già (stesso `numeric_sender_reference` e `number`), oppure la crea se non esiste.
 - Puoi usare questi oggetti anche in Command, Controller, FormHandler o altri servizi custom.

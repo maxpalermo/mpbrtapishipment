@@ -82,18 +82,7 @@
 </style>
 
 <script>
-    // Url Controller
-    const borderoUrl = '{{ path("mpbrtapishipment_admin_brt_bordero_get_table_data") }}';
-	const borderoHistoryUrl = '{{ path("mpbrtapishipment_admin_brt_bordero_get_history_table_data") }}';
-	const borderoPrintLabelsUrl = '{{ path("mpbrtapishipment_admin_brt_bordero_print_labels") }}';
-	const borderoPrintAllLabelsUrl = '{{ path("mpbrtapishipment_admin_brt_bordero_print_all_labels") }}';
-	const borderoNewLabelUrl = '{{ path("mpbrtapishipment_admin_brt_bordero_new_label") }}';
-	const borderoDeleteLabelUrl = '{{ path("mpbrtapishipment_admin_brt_bordero_delete_label") }}';
-    const borderoFillOrderDetailsUrl = '{{ path("mpbrtapishipment_admin_brt_bordero_fill_order_details") }}';
-	const borderoPreferencesUrl = '{{ path("mpbrtapishipment_admin_brt_bordero_preferences") }}';
-	const borderoPermissionsUrl = '{{ path("mpbrtapishipment_admin_brt_bordero_permissions") }}';
-    const borderoSaveSettingsUrl = '{{ path("mpbrtapishipment_admin_brt_bordero_save_settings") }}';
-    // Passa i dati dal controller Twig a JS
+	// Passa i dati dal controller Twig a JS
     let borderoRows = null;
     let searchBtn = null;
     let searchInput = null;

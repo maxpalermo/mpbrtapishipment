@@ -6,11 +6,48 @@ services:
     autowire: true
     autoconfigure: true
 
+  MpSoft\MpBrtApiShipment\Services\GetParcelsMeasures:
+    arguments:
+      - "@doctrine.dbal.default_connection"
+    public: true
+    autowire: true
+    autoconfigure: true
+
+  MpSoft\MpBrtApiShipment\Services\BrtConfiguration:
+    public: true
+    autowire: true
+    autoconfigure: true
+
   MpSoft\MpBrtApiShipment\Controllers\Admin\AdminBrtBorderoController:
     arguments:
-      $getOrderLabelDetails: '@MpSoft\MpBrtApiShipment\Services\GetOrderLabelDetails'
-      $context: '@prestashop.adapter.legacy.context'
-      $translator: '@translator'
+      - '@MpSoft\MpBrtApiShipment\Repository\Doctrine\BrtShipmentRequestRepository'
+      - '@MpSoft\MpBrtApiShipment\Repository\Doctrine\BrtShipmentResponseRepository'
+      - '@MpSoft\MpBrtApiShipment\Repository\Doctrine\BrtShipmentResponseLabelRepository'
+      - '@MpSoft\MpBrtApiShipment\Services\GetOrderLabelDetails'
+      - '@MpSoft\MpBrtApiShipment\Services\GetParcelsMeasures'
+      - "@prestashop.adapter.legacy.context"
+      - "@translator"
+    public: true
+    autowire: true
+    autoconfigure: true
+
+  MpSoft\MpBrtApiShipment\Repository\Doctrine\BrtShipmentResponseRepository:
+    arguments:
+      - "@doctrine.orm.entity_manager"
+    public: true
+    autowire: true
+    autoconfigure: true
+
+  MpSoft\MpBrtApiShipment\Repository\Doctrine\BrtShipmentResponseLabelRepository:
+    arguments:
+      - "@doctrine.orm.entity_manager"
+    public: true
+    autowire: true
+    autoconfigure: true
+
+  MpSoft\MpBrtApiShipment\Repository\Doctrine\BrtShipmentRequestRepository:
+    arguments:
+      - "@doctrine.orm.entity_manager"
     public: true
     autowire: true
     autoconfigure: true

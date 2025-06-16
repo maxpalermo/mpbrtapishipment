@@ -134,7 +134,7 @@ class ModelBrtShipmentLabelWeight extends \ObjectModel
         $this->name = 'ModelMpBrtLabelWeight';
         $this->context = \Context::getContext();
         $this->controller = $this->context->controller;
-        $this->module = $this->controller->module;
+        $this->module = \Module::getInstanceByName('mpbrtapishipment');
 
         parent::__construct($id, $id_lang, $id_shop);
     }

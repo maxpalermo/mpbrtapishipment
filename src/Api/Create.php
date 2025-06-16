@@ -29,7 +29,7 @@ class Create
     /**
      * Invia una spedizione a BRT passando direttamente tutti i dati necessari (object style).
      *
-     * @param string|null $env Ambiente ('real' o 'sandbox'), opzionale solo se vuoi cambiare endpoint in base all'ambiente
+     * @param string|null $env Ambiente ('PRODUCTION' o 'SANDBOX'), opzionale solo se vuoi cambiare endpoint in base all'ambiente
      */
     public static function sendShipmentRequest(ShipmentRequest $shipmentRequest, $env = null): ShipmentResponse
     {

@@ -100,6 +100,20 @@ class ModelBrtShipmentResponseLabel extends \ObjectModel
         return $result;
     }
 
+    public static function getByNumericSenderReferenceAndNumber($numericSenderReference, $number)
+    {
+        $db = \Db::getInstance();
+        $query = new \DbQuery();
+        $query->select(self::$definition['primary'])
+            ->from(self::$definition['table'])
+            ->where('numeric_sender_reference = '.(int) $numericSenderReference)
+            ->where('number = '.(int) $number);
+
+        $result = (int) $db->getValue($query);
+
+        return new self($result);
+    }
+
     public static function deleteByNumericSenderReference($numericSenderReference): bool
     {
         return (new DeleteByNumericReference($numericSenderReference, self::$definition['table']))->run();

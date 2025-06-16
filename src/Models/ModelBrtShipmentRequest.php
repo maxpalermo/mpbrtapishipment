@@ -41,7 +41,7 @@ class ModelBrtShipmentRequest extends \ObjectModel
         'table' => 'brt_shipment_request',
         'primary' => 'id_brt_shipment_request',
         'fields' => [
-            'order_id' => ['type' => self::TYPE_INT, 'validate' => 'isUnsignedInt', 'required' => true],
+            'order_id' => ['type' => self::TYPE_INT, 'validate' => 'isUnsignedInt', 'required' => false],
             'numeric_sender_reference' => ['type' => self::TYPE_STRING, 'size' => 15, 'validate' => 'isUnsignedInt', 'required' => true],
             'alphanumeric_sender_reference' => ['type' => self::TYPE_STRING, 'size' => 15, 'validate' => 'isAnything', 'required' => true],
             'account_json' => ['type' => self::TYPE_HTML, 'validate' => 'isJson'],

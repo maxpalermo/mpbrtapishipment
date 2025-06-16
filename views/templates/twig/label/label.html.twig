@@ -1,5 +1,13 @@
 <dialog id="brt-label-dialog">
 	<style>
+    dialog {
+        font-size: 0.9rem;
+        border: none;
+        padding: 16px;
+    }
+    dialog::backdrop {
+        background-color: rgba(0, 0, 0, 0.5);
+    }
     .grow-1 {
         flex-grow: 1;
     }
@@ -21,6 +29,9 @@
     .fixed-width-xs {
         width: 100px;
     }
+    .fixed-width-mini {
+        width: 92px;
+    }
     .input-group-addon {
         display: flex;
         align-items: center;
@@ -29,14 +40,19 @@
         border: 1px solid #ccc;
         border-left: none;
     }
+    #form-brt-label section
+    {
+        margin-bottom: 16px;
+        border-bottom: 1px solid #ccc;
+        padding-bottom: 8px;
+    }
     </style>
     <form id="form-brt-label" method="POST">
         <input type="hidden" id="isAlertRequired" name="isAlertRequired" value="1">
         <div class="card">
             <div class="card-header">
                 <h5 class="card-title">Etichetta</h5>
-                {% if showOrderIdSearch %}
-                <h5 class="card-title">
+                <h5 class="card-title" {% if not showOrderIdSearch %} style="display: none;" {% endif %}>
                     <div class="d-flex justify-content-between align-items-center">
                         <div class="search-container d-flex justify-content-start align-items-center">
                             <div class="form-group fixed-width-lg">
@@ -44,6 +60,16 @@
                                 <input type="text" id="search-order-id" name="order-id" class="form-control text-center">
                             </div>
                             <button type="button" class="btn btn-primary" id="search-order-id-button" style="margin-top: 7px; height: 42px;" data-input-id="search-order-id" onclick="fillOrderDetails(this);">Cerca</button>
+                        </div>
+                        <div class="change-order-state d-flex justify-content-start align-items-center">
+                            <div class="form group">
+                                <label for="change-order-state">Cambia lo stato dell'ordine</label>
+                                <select id="change-order-state" name="change-order-state" class="form-control">
+                                    {% for state in orderStates %}
+                                        <option value="{{ state.id_order_state }}" {%if state.id_order_state == defaultChangeOrderState %}selected{% endif %}>{{ state.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
                         </div>
                         <div class="btn-group">
                             <button type="button" class="btn btn-info dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
@@ -72,7 +98,6 @@
                         </div>
                     </div>
                 </h5>
-                {% endif %}
             </div>
             <div class="card-body">
                 <section id="consignee-section">
@@ -80,7 +105,7 @@
                     <div class="form-group fixed-width-lg">
                         <label for="numeric_sender_reference">Rif. numerico</label>
                         <div class="input-group">
-                            <input type="text" id="numeric_sender_reference" name="numeric_sender_reference" class="form-control" maxlength="15">
+                            <input required type="text" id="numeric_sender_reference" name="numeric_sender_reference" class="form-control" maxlength="15">
                             <span class="input-group-addon">
                                 <span class="material-icons">key</span>
                             </span>
@@ -89,7 +114,7 @@
                     <div class="form-group fixed-width-lg">
                         <label for="alphanumeric_sender_reference">Rif. alfanumerico</label>
                         <div class="input-group">
-                            <input type="text" id="alphanumeric_sender_reference" name="alphanumeric_sender_reference" class="form-control" maxlength="15">
+                            <input required type="text" id="alphanumeric_sender_reference" name="alphanumeric_sender_reference" class="form-control" maxlength="15">
                             <span class="input-group-addon">
                                 <span class="material-icons">key</span>
                             </span>
@@ -98,7 +123,7 @@
                     <div class="form-group grow-1">
                         <label for="consignee_company_name">Nome destinatario</label>
                         <div class="input-group">
-                            <input type="text" id="consignee_company_name" name="consignee_company_name" class="form-control" maxlength="70">
+                            <input required type="text" id="consignee_company_name" name="consignee_company_name" class="form-control" maxlength="70">
                             <span class="input-group-addon">
                                 <span class="material-icons">person</span>
                             </span>
@@ -118,16 +143,16 @@
                     <div class="form-group grow-1">
                         <label for="consignee_address">Indirizzo destinatario</label>
                         <div class="input-group">
-                            <input type="text" id="consignee_address" name="consignee_address" class="form-control" maxlength="35" minlength="6">
+                            <input required type="text" id="consignee_address" name="consignee_address" class="form-control" maxlength="35" minlength="6">
                             <span class="input-group-addon">
                                 <span class="material-icons">home</span>
                             </span>
                         </div>
                     </div>
-                    <div class="form-group fixed-width-sm">
+                    <div class="form-group fixed-width-sm" style="min-width: 150px;">
                         <label for="consignee_zip_code">CAP destinatario</label>
                         <div class="input-group">
-                            <input type="text" id="consignee_zip_code" name="consignee_zip_code" class="form-control" maxlength="9" minlength="0">
+                            <input required type="text" id="consignee_zip_code" name="consignee_zip_code" class="form-control" maxlength="9" minlength="0">
                             <span class="input-group-addon">
                                 <span class="material-icons">home</span>
                             </span>
@@ -136,13 +161,13 @@
                     <div class="form-group grow-1">
                         <label for="consignee_city">Città destinatario</label>
                         <div class="input-group">
-                            <input type="text" id="consignee_city" name="consignee_city" class="form-control" maxlength="35" minlength="0">
+                            <input required type="text" id="consignee_city" name="consignee_city" class="form-control" maxlength="35" minlength="0">
                             <span class="input-group-addon">
                                 <span class="material-icons">home</span>
                             </span>
                         </div>
                     </div>
-                    <div class="form-group fixed-width-xs">
+                    <div class="form-group fixed-width-xs" style="min-width: 100px;">
                         <label for="consignee_province_abbreviation">Provincia</label>
                         <div class="input-group">
                             <input type="text" id="consignee_province_abbreviation" name="consignee_province_abbreviation" class="form-control" maxlength="2" minlength="0">
@@ -151,10 +176,10 @@
                             </span>
                         </div>
                     </div>
-                    <div class="form-group fixed-width-xs">
+                    <div class="form-group fixed-width-xs" style="min-width: 100px;">
                         <label for="consignee_country_abbreviation_iso_alpha_2">Stato</label>
                         <div class="input-group">
-                            <input type="text" id="consignee_country_abbreviation_iso_alpha_2" name="consignee_country_abbreviation_iso_alpha_2" class="form-control" maxlength="2" minlength="2">
+                            <input required type="text" id="consignee_country_abbreviation_iso_alpha_2" name="consignee_country_abbreviation_iso_alpha_2" class="form-control" maxlength="2" minlength="2">
                             <span class="input-group-addon">
                                 <span class="material-icons">home</span>
                             </span>
@@ -209,7 +234,7 @@
                             <label for="network">Network</label>
                             <div class="input-group">
                                 <select id="network" name="network" class="form-control">
-                                    <option value="">Nazionale</option>
+                                    <option value="DEF">Nazionale</option>
                                     <option value="D">DPD</option>
                                     <option value="E">EURO EXPRESS</option>
                                     <option value="S">FED</option>
@@ -223,22 +248,40 @@
                             <label for="delivery_freight_type_code">Tipo spedizione</label>
                             <div class="input-group">
                                 <select id="delivery_freight_type_code" name="delivery_freight_type_code" class="form-control">
-                                    <option value="1">FRANCO</option>
-                                    <option value="2">ASSEGNATO</option>
-                                    <option value="4">FRANCO +C/ASSEGNO</option>
-                                    <option value="6">ASSEGNATO +C/ASSEGNO</option>
+                                    <option value="DAP">FRANCO</option>
+                                    <option value="EXW">ASSEGNATO</option>
                                 </select>
                                 <span class="input-group-addon">
                                     <span class="material-icons">local_shipping</span>
                                 </span>
                             </div>
                         </div>
-                        <div class="form-group fixed-width-lg">
+                        <div class="form-group grow-1">
                             <label for="sender_parcel_type">Natura merce</label>
                             <div class="input-group">
                                 <input type="text" name="sender_parcel_type" id="sender_parcel_type" class="form-control" maxlength="15">
                                 <span class="input-group-addon">
                                     <span class="material-icons">chat_bubble</span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-start align-items-center gap-2">
+                        <div class="form-group grow-1">
+                            <label for="notes">Note</label>
+                            <div class="input-group">
+                                <input type="text" name="notes" id="notes" class="form-control" maxlength="70">
+                                <span class="input-group-addon">
+                                    <span class="material-icons">chat_bubble</span>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="form-group fixed-width-sm">
+                            <label for="pudo_id">Codice PUDO</label>
+                            <div class="input-group">
+                                <input type="text" name="pudo_id" id="pudo_id" class="form-control" maxlength="15">
+                                <span class="input-group-addon">
+                                    <span class="material-icons" style="color: var(--danger);">location_on</span>
                                 </span>
                             </div>
                         </div>
@@ -249,9 +292,9 @@
                         <div class="form-group fixed-width-sm">
                             <label for="is_cod_mandatory">Contrassegno</label>
                             <div class="ps-switch ps-switch-lg ps-togglable-row">
-                                <input type="radio" name="is_cod_mandatory" id="is_cod_mandatory-off" value="0" onclick="toggleCashOnDelivery(0)">
+                                <input type="radio" name="is_cod_mandatory" id="is_cod_mandatory-off" value="0">
                                 <label for="is_cod_mandatory-off"></label>
-                                <input type="radio" name="is_cod_mandatory" id="is_cod_mandatory-on" value="1" onclick="toggleCashOnDelivery(1)">
+                                <input type="radio" name="is_cod_mandatory" id="is_cod_mandatory-on" value="1">
                                 <label for="is_cod_mandatory-on"></label>
                                 <span class="slide-button"></span>
                             </div>
@@ -259,7 +302,7 @@
                         <div class="form-group fixed-width-lg">
                             <label for="cash_on_delivery">Importo contrassegno</label>
                             <div class="input-group">
-                                <input type="number" name="cash_on_delivery" id="cash_on_delivery" class="form-control text-right" step="0.01" min="0" max="999" value="0" disabled>
+                                <input type="text" name="cash_on_delivery" id="cash_on_delivery" class="form-control text-right" data-min="0" data-max="999" value="0.00" disabled>
                                 <input type="hidden" name="cod_currency" id="cod_currency" value="{{ cod_currency }}">
                                 <span class="input-group-addon">
                                     <span class="text-addon">{{ cod_currency }}</span>
@@ -270,7 +313,7 @@
                             <label for="cod_payment_type">Tipo pagamento</label>
                             <div class="input-group">
                                 <select id="cod_payment_type" name="cod_payment_type" class="form-control" disabled>
-                                    <option value="">ACCETTARE CONTANTE</option>
+                                    <option value="DEF">ACCETTARE CONTANTE</option>
                                     <option value="BM">ACCETTARE ASSEGNO BANCARIO INTESTATO ALLA MITTENTE</option>
                                     <option value="CM">ACCETTARE ASSEGNO CIRCOLARE INTESTATO ALLA MITTENTE</option>
                                     <option value="BB">ACCETTARE ASSEGNO BANCARIO INTESTATO CORRIERE CON MANLEVA</option>
@@ -284,6 +327,96 @@
                         </div>
                     </div>
                 </section>
+                <section class="package-section">
+                    <div class="d-flex justify-content-start align-items-center gap-2">
+                        <button type="button" class="btn btn-info" id="read-parcels" onclick="readParcels()">
+                            <span class="material-icons">scale</span>
+                            <span>Leggi misure bilancia</span>
+                        </button>
+                    </div>
+                    <div class="d-flex justify-content-start align-items-center gap-2">
+                        <div class="form-group fixed-width-sm" style="min-width: 150px;">
+                            <label for="number_of_parcels">Colli</label>
+                            <div class="input-group">
+                                <input type="number" name="number_of_parcels" id="number_of_parcels" class="form-control text-right" min="1" value="1">
+                                <span class="input-group-addon">
+                                    <span class="material-icons">inventory_2</span>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="form-group fixed-width-sm" style="min-width: 150px;">
+                            <label for="weight_kg">Peso (kg)</label>
+                            <div class="input-group">
+                                <input type="number" name="weight_kg" id="weight_kg" class="form-control text-right" min="1" value="1" step="0.1">
+                                <span class="input-group-addon">
+                                    <span class="material-icons">balance</span>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="form-group fixed-width-sm" style="min-width: 150px;">
+                            <label for="volume_m3">Volume (m3)</label>
+                            <div class="input-group">
+                                <input type="number" name="volume_m3" id="volume_m3" class="form-control text-right" min="0" value="0" step="0.001">
+                                <span class="input-group-addon">
+                                    <span class="material-icons">space_dashboard</span>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="form-group grow-1">
+                            <table id="table-label-packages" class="table table-bordered table-condensed">
+                                <thead style="text-align: center">
+                                    <tr>
+                                        <th>Collo</th>
+                                        <th>Peso</th>
+                                        <th>X</th>
+                                        <th>Y</th>
+                                        <th>Z</th>
+                                        <th>Volume</th>
+                                        <th>Azioni</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr class="package-row" data-row-id="0">
+                                        <td scope="row" style="text-align: right; padding-right: 4px;">
+                                            <span class="badge badge-success">1</span>
+                                        </td>
+                                        <td style="text-align: right; padding-right: 4px;">
+                                            <input type="text" name="package-weight" class="form-control text-right fixed-width-mini package-weight" min="0" value="0.0" data-default-value="0.0">
+                                        </td>
+                                        <td style="text-align: right; padding-right: 4px;">
+                                            <input type="text" name="package-x" class="form-control text-right fixed-width-mini package-measure package-x" min="0" value="0" data-default-value="0">
+                                        </td>
+                                        <td style="text-align: right; padding-right: 4px;">
+                                            <input type="text" name="package-y" class="form-control text-right fixed-width-mini package-measure package-y" min="0" value="0" data-default-value="0">
+                                        </td>
+                                        <td style="text-align: right; padding-right: 4px;">
+                                            <input type="text" name="package-z" class="form-control text-right fixed-width-mini package-measure package-z" min="0" value="0" data-default-value="0">
+                                        </td>
+                                        <td style="text-align: right; padding-right: 4px;">
+                                            <input type="text" name="package-volume" class="form-control text-right fixed-width-mini package-volume" min="0" value="0.000" data-default-value="0.000" tabindex="-1" readonly>
+                                        </td>
+                                        <td style="text-align: center; width: auto;">
+                                            <div class="btn-group">
+                                                <button type="button" class="btn btn-default btn-sm package-button" data-action="add">
+                                                    <span class="material-icons" style="color: var(--info) !important;" title="Nuova riga">add</span>
+                                                </button>
+                                                <button type="button" class="btn btn-default btn-sm package-button" data-action="delete">
+                                                    <span class="material-icons" style="color: var(--danger) !important;" title="Elimina riga">delete</span>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+            </div>
+            <div class="card-footer">
+                <div class="d-flex justify-content-center gap-2">
+                    <button type="button" class="btn btn-primary" onclick="createLabel();">Genera etichetta</button>
+                    <button type="button" class="btn btn-default" onclick="document.getElementById('brt-label-dialog').close();">Annulla</button>
+                </div>
             </div>
         </div>
 	</form>

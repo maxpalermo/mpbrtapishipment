@@ -1,6 +1,6 @@
 <?php
 
-namespace MpSoft\MpBrtApiShipment\Api;
+namespace MpSoft\MpBrtApiShipment\Services;
 
 final class BrtConfiguration
 {
@@ -107,7 +107,6 @@ final class BrtConfiguration
     public function getLabelParameters()
     {
         $keys = [
-            'label_output_type',
             'label_offset_x',
             'label_offset_y',
             'label_is_border_required',
@@ -117,7 +116,7 @@ final class BrtConfiguration
         ];
         $settings = [];
         foreach ($keys as $key) {
-            if (!in_array($key, ['label_format'])) {
+            if ('label_format' != $key) {
                 $requestKey = \Tools::toCamelCase(substr($key, 5));
             } else {
                 $requestKey = \Tools::toCamelCase($key);

@@ -1,0 +1,13 @@
+doctrine:
+  orm:
+    mappings:
+      Mpbrtapishipment:
+        is_bundle: false
+        type: annotation
+        dir: "%kernel.project_dir%/modules/mpbrtapishipment/src/Entity"
+        prefix: 'MpSoft\MpBrtApiShipment\Entity'
+        alias: Mpbrtapishipment
+    entity_listeners:
+      default:
+        subscribers:
+          - MpSoft\MpBrtApiShipment\Doctrine\TablePrefixSubscriber

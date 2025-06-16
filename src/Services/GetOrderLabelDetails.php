@@ -5,7 +5,6 @@ namespace MpSoft\MpBrtApiShipment\Services;
 use Doctrine\DBAL\Connection;
 use MpSoft\MpBrtApiShipment\Api\BrtAuthManager;
 use MpSoft\MpBrtApiShipment\Api\BrtConfiguration;
-use MpSoft\MpBrtApiShipment\Api\CashOnDelivery;
 
 final class GetOrderLabelDetails
 {
@@ -19,10 +18,13 @@ final class GetOrderLabelDetails
 
     public function run($orderId): array
     {
-        /** @var Connection */
-        $conn = $this->connection;
-
+        $conf = new BrtConfiguration();
         $order = new \Order($orderId);
+        $codModules = $conf->get('cash_on_delivery_modules') ?? [];
+        if (is_string($codModules)) {
+            $codModules = [$codModules];
+        }
+
         if (!\Validate::isLoadedObject($order)) {
             return [
                 'success' => false,
@@ -36,16 +38,20 @@ final class GetOrderLabelDetails
         $state = new \State($address->id_state);
         $customer = new \Customer($order->id_customer);
 
-        $cashModules = CashOnDelivery::getCashOnDeliveryModules();
         $module = $order->module;
-
-        $cashOnDelivery = false;
-        foreach ($cashModules as $cashModule) {
-            if ($module === $cashModule['value']) {
-                $cashOnDelivery = true;
-                break;
+        $cashOnDeliveryModulesName = array_filter(array_map(function ($module) {
+            $paymentModule = \Module::getInstanceById((int) $module);
+            if (!\Validate::isLoadedObject($paymentModule)) {
+                return 0;
             }
+
+            return $paymentModule->name;
+        }, $codModules));
+        if (!in_array('mpcodfee', $cashOnDeliveryModulesName)) {
+            $cashOnDeliveryModulesName[] = 'mpcodfee';
         }
+        $cashOnDelivery = in_array($module, $cashOnDeliveryModulesName);
+        $cashOnDeliveryAmount = number_format((float) ($cashOnDelivery ? $order->total_paid_tax_incl : 0), 2);
 
         $labelDetails = [
             'account' => $account->toArray(),
@@ -63,11 +69,12 @@ final class GetOrderLabelDetails
             'consignee_mobile_phone_number' => $address->phone_mobile,
             'consignee_email' => $customer->email,
             'service_type' => (new BrtConfiguration())->get('service_type'),
-            'network' => (new BrtConfiguration())->get('network'),
+            'network' => 'DEF',
             'delivery_freight_type_code' => (new BrtConfiguration())->get('delivery_freight_type_code'),
-            'sender_parcel_type' => $address->other,
-            'is_cod_mandatory' => $cashOnDelivery,
-            'cash_on_delivery' => $cashOnDelivery ? $order->total_paid_tax_incl : 0,
+            'sender_parcel_type' => (new BrtConfiguration())->get('sender_parcel_type'),
+            'notes' => $address->other,
+            'is_cod_mandatory' => (int) $cashOnDelivery,
+            'cash_on_delivery' => $cashOnDeliveryAmount,
             'cod_currency' => \Context::getContext()->currency->iso_code,
             'number_of_parcels' => 1,
             'weight_kg' => 1,

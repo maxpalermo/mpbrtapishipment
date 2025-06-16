@@ -33,8 +33,8 @@ class BrtAuthManager
      */
     public function getAccount()
     {
-        $env = 'sandbox' == $this->conf->get('environment') ? 'sandbox' : 'production';
-        if ('sandbox' === $env) {
+        $env = 'SANDBOX' == $this->conf->get('environment') ? 'SANDBOX' : 'PRODUCTION';
+        if ('SANDBOX' === $env) {
             return new Account($this->sandboxUserId, $this->sandboxPassword, $this->sandboxDepartureDepot);
         }
 

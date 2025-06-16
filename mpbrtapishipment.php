@@ -24,6 +24,9 @@ if (!defined('_PS_VERSION_')) {
 
 require_once dirname(__FILE__).'/vendor/autoload.php';
 
+use MpSoft\MpBrtApiShipment\Entity\BrtShipmentRequest;
+use MpSoft\MpBrtApiShipment\Entity\BrtShipmentResponse;
+use MpSoft\MpBrtApiShipment\Entity\BrtShipmentResponseLabel;
 use PrestaShop\PrestaShop\Adapter\SymfonyContainer;
 use PrestaShop\PrestaShop\Core\Action\ActionsBarButton;
 use PrestaShop\PrestaShop\Core\Grid\Action\Row\Type\LinkRowAction;
@@ -46,8 +49,12 @@ class MpBrtApiShipment extends Module
 
     public function install()
     {
-        return parent::install()
-            && $this->registerHook([
+        $parentInstall = parent::install();
+
+        $this->tableInstall();
+
+        return $parentInstall && $this->registerHook(
+            [
                 'actionOrderGridDefinitionModifier',
                 'actionOrderGridQueryBuilderModifier',
                 'actionOrderGridPresenterModifier',
@@ -55,24 +62,30 @@ class MpBrtApiShipment extends Module
                 'actionGetAdminToolbarButtons',
                 'displayAdminOrderTop',
                 'displayAdminEndContent',
-            ])
-            && $this->installTables()
-            && $this->installMenu();
+            ]
+        )
+        && $this->installMenu();
     }
 
-    protected function installTables()
+    public function uninstall()
     {
-        $fileSql = file_get_contents(__DIR__.'/sql/install_brt_shipment_tables.sql');
-        $fileSql = str_replace('__PREFIX__', _DB_PREFIX_, $fileSql);
-        $queries = explode(';', $fileSql);
+        $parentUninstall = parent::uninstall();
 
-        foreach ($queries as $query) {
-            if (trim($query)) {
-                Db::getInstance()->execute($query);
-            }
+        return $parentUninstall && $this->uninstallMenu();
+    }
+
+    protected function tableInstall()
+    {
+        $entities = [
+            BrtShipmentRequest::class,
+            BrtShipmentResponse::class,
+            BrtShipmentResponseLabel::class,
+        ];
+
+        foreach ($entities as $entity) {
+            $sql = $entity::getSqlCreateStatement();
+            Db::getInstance()->execute($sql);
         }
-
-        return true;
     }
 
     public function installMenu()
@@ -113,342 +126,6 @@ class MpBrtApiShipment extends Module
         return $tab->delete();
     }
 
-    public function uninstall()
-    {
-        return parent::uninstall()
-            && $this->uninstallMenu();
-    }
-
-    public function getConfigurationKeys()
-    {
-        return [
-            'BRT_ENVIRONMENT',
-            'BRT_REAL_USERID',
-            'BRT_REAL_PASSWORD',
-            'BRT_SANDBOX_USERID',
-            'BRT_SANDBOX_PASSWORD',
-            'BRT_DEPARTURE_DEPOT',
-            'BRT_EMPLOYEES',
-            'BRT_ORDERSTATE_SHOWBTN',
-            'BRT_ORDERSTATE_AFTERSEND',
-            'BRT_PAYMENT_MODULES_COD',
-            'BRT_LABEL_OUTPUT_TYPE',
-            'BRT_LABEL_BORDER',
-            'BRT_LABEL_BARCODE',
-            'BRT_LABEL_LOGO',
-            'BRT_LABEL_OFFSET_X',
-            'BRT_LABEL_OFFSET_Y',
-            'BRT_ALERT_BY_EMAIL',
-            'BRT_ALERT_BY_SMS',
-            'BRT_PAYMENT_COD',
-            'BRT_IS_LABEL_REQUIRED',
-            'BRT_PORT',
-            'BRT_SERVICE_TYPE',
-            'BRT_NETWORK',
-        ];
-    }
-
-    public function getContent()
-    {
-        $output = '';
-        if (Tools::isSubmit('submit_mpbrtapishipment')) {
-            // Salva tutti i parametri
-            $keys = $this->getConfigurationKeys();
-            foreach ($keys as $key) {
-                $val = Tools::getValue($key);
-                if (is_array($val)) {
-                    $val = implode(',', $val);
-                }
-                Configuration::updateValue($key, $val);
-            }
-            $output .= $this->displayConfirmation($this->l('Configurazione aggiornata'));
-        }
-
-        // Recupera dati per i select/multiselect dinamici
-        $employees = $this->getEmployees();
-        $orderStates = $this->getOrderStates();
-        $paymentModules = $this->getAvailablePaymentModules();
-
-        $fields_form = [
-            'form' => [
-                'legend' => ['title' => $this->l('Configurazione BRT API')],
-                'input' => [
-                    // Link CRON
-                    [
-                        'type' => 'html',
-                        'label' => $this->l('Link CRON'),
-                        'name' => 'cron_link',
-                        'html_content' => $this->getCronLinkHtml(),
-                    ],
-                    // Ambiente e credenziali
-                    [
-                        'type' => 'select',
-                        'label' => $this->l('Ambiente BRT (default)'),
-                        'name' => 'BRT_ENVIRONMENT',
-                        'options' => [
-                            'query' => [
-                                ['id' => 'real', 'name' => 'Produzione'],
-                                ['id' => 'sandbox', 'name' => 'Sandbox/Test'],
-                            ],
-                            'id' => 'id',
-                            'name' => 'name',
-                        ],
-                    ],
-                    [
-                        'col' => 2,
-                        'type' => 'text',
-                        'label' => $this->l('UserID Produzione'),
-                        'name' => 'BRT_REAL_USERID',
-                    ],
-                    [
-                        'col' => 2,
-                        'type' => 'text',
-                        'label' => $this->l('Password Produzione'),
-                        'name' => 'BRT_REAL_PASSWORD',
-                    ],
-                    [
-                        'col' => 2,
-                        'type' => 'text',
-                        'label' => $this->l('UserID Sandbox'),
-                        'name' => 'BRT_SANDBOX_USERID',
-                    ],
-                    [
-                        'col' => 2,
-                        'type' => 'text',
-                        'label' => $this->l('Password Sandbox'),
-                        'name' => 'BRT_SANDBOX_PASSWORD',
-                    ],
-                    // Accesso impiegati
-                    [
-                        'col' => 6,
-                        'type' => 'select',
-                        'label' => $this->l('Impiegati abilitati'),
-                        'name' => 'BRT_EMPLOYEES',
-                        'multiple' => true,
-                        'class' => 'select2',
-                        'options' => [
-                            'query' => $employees,
-                            'id' => 'id_employee',
-                            'name' => 'name',
-                        ],
-                    ],
-                    // Stati ordine: mostra pulsante
-                    [
-                        'col' => 6,
-                        'type' => 'select',
-                        'label' => $this->l('Mostra pulsante BRT su stato ordine'),
-                        'name' => 'BRT_ORDERSTATE_SHOWBTN',
-                        'class' => 'select2',
-                        'options' => [
-                            'query' => $orderStates,
-                            'id' => 'id_order_state',
-                            'name' => 'name',
-                        ],
-                    ],
-                    // Stati ordine: dopo invio
-                    [
-                        'col' => 6,
-                        'type' => 'select',
-                        'label' => $this->l('Stato ordine dopo invio a BRT'),
-                        'name' => 'BRT_ORDERSTATE_AFTERSEND',
-                        'class' => 'select2',
-                        'options' => [
-                            'query' => $orderStates,
-                            'id' => 'id_order_state',
-                            'name' => 'name',
-                        ],
-                    ],
-                    // Departure Depot
-                    [
-                        'col' => 3,
-                        'type' => 'text',
-                        'label' => $this->l('Codice Filiale Mittente (departureDepot)'),
-                        'name' => 'BRT_DEPARTURE_DEPOT',
-                    ],
-                    // Porto
-                    [
-                        'col' => 6,
-                        'type' => 'select',
-                        'label' => $this->l('Porto'),
-                        'name' => 'BRT_PORT',
-                        'class' => 'select2',
-                        'options' => [
-                            'query' => [
-                                ['id' => 'DAP', 'name' => 'FRANCO'],
-                                ['id' => 'EXW', 'name' => 'ASSEGNATO'],
-                            ],
-                            'id' => 'id',
-                            'name' => 'name',
-                        ],
-                    ],
-                    // Tipo di servizio
-                    [
-                        'col' => 6,
-                        'type' => 'select',
-                        'label' => $this->l('Tipo di servizio'),
-                        'name' => 'BRT_SERVICE_TYPE',
-                        'class' => 'select2',
-                        'options' => [
-                            'query' => [
-                                ['id' => '', 'name' => 'DEFAULT'],
-                                ['id' => 'E', 'name' => 'PRIORITY'],
-                                ['id' => 'H', 'name' => '10:30'],
-                            ],
-                            'id' => 'id',
-                            'name' => 'name',
-                        ],
-                    ],
-                    // Network estero
-                    [
-                        'col' => 6,
-                        'type' => 'select',
-                        'label' => $this->l('Network estero'),
-                        'name' => 'BRT_NETWORK',
-                        'class' => 'select2',
-                        'options' => [
-                            'query' => [
-                                ['id' => 'D', 'name' => 'DPD'],
-                                ['id' => 'E', 'name' => 'EURO EXPRESS'],
-                                ['id' => 'S', 'name' => 'FED'],
-                            ],
-                            'id' => 'id',
-                            'name' => 'name',
-                        ],
-                    ],
-                    // Moduli pagamento contrassegno
-                    [
-                        'col' => 6,
-                        'type' => 'select',
-                        'label' => $this->l('Tipo di pagamento contrassegno'),
-                        'name' => 'BRT_PAYMENT_COD',
-                        'class' => 'select2',
-                        'options' => [
-                            'query' => [
-                                ['value' => '',   'label' => 'ACCETTARE CONTANTE'],
-                                ['value' => 'BM', 'label' => 'ACCETTARE ASSEGNO BANCARIO INTESTATO ALLA MITTENTE'],
-                                ['value' => 'CM', 'label' => 'ACCETTARE ASSEGNO CIRCOLARE INTESTATO ALLA MITTENTE'],
-                                ['value' => 'BB', 'label' => 'ACCETTARE ASSEGNO BANCARIO INTESTATO CORRIERE CON MANLEVA'],
-                                ['value' => 'OM', 'label' => 'ACCETTARE ASSEGNO INTESTATO AL MITTENTE ORIGINALE'],
-                                ['value' => 'OC', 'label' => 'ACCETTARE ASSEGNO CIRCOLARE INTESTATO AL MITTENTE ORIGINALE'],
-                            ],
-                            'id' => 'value',
-                            'name' => 'label',
-                        ],
-                    ],
-                    // Avvisi
-                    [
-                        'type' => 'switch',
-                        'label' => $this->l('Avvisa via Email'),
-                        'name' => 'BRT_ALERT_BY_EMAIL',
-                        'is_bool' => true,
-                        'values' => [
-                            ['id' => 'on', 'value' => 1, 'label' => $this->l('Si')],
-                            ['id' => 'off', 'value' => 0, 'label' => $this->l('No')],
-                        ],
-                    ],
-                    [
-                        'type' => 'switch',
-                        'label' => $this->l('Avvisa via SMS'),
-                        'name' => 'BRT_ALERT_BY_SMS',
-                        'is_bool' => true,
-                        'values' => [
-                            ['id' => 'on', 'value' => 1, 'label' => $this->l('Si')],
-                            ['id' => 'off', 'value' => 0, 'label' => $this->l('No')],
-                        ],
-                    ],
-                    // Parametri label
-                    [
-                        'type' => 'switch',
-                        'label' => $this->l('Creazione etichetta?'),
-                        'name' => 'BRT_IS_LABEL_REQUIRED',
-                        'is_bool' => true,
-                        'values' => [
-                            ['id' => 'on', 'value' => 1, 'label' => $this->l('Si')],
-                            ['id' => 'off', 'value' => 0, 'label' => $this->l('No')],
-                        ],
-                    ],
-                    [
-                        'type' => 'switch',
-                        'label' => $this->l('Stampa PDF (altrimenti ZPL)'),
-                        'name' => 'BRT_LABEL_OUTPUT_TYPE',
-                        'is_bool' => true,
-                        'values' => [
-                            ['id' => 'on', 'value' => 'PDF', 'label' => $this->l('PDF')],
-                            ['id' => 'off', 'value' => 'ZPL', 'label' => $this->l('ZPL')],
-                        ],
-                    ],
-                    [
-                        'type' => 'switch',
-                        'label' => $this->l('Etichetta con bordo?'),
-                        'name' => 'BRT_LABEL_BORDER',
-                        'is_bool' => true,
-                        'values' => [
-                            ['id' => 'on', 'value' => 1, 'label' => $this->l('Si')],
-                            ['id' => 'off', 'value' => 0, 'label' => $this->l('No')],
-                        ],
-                    ],
-                    [
-                        'type' => 'switch',
-                        'label' => $this->l('Etichetta con barcode?'),
-                        'name' => 'BRT_LABEL_BARCODE',
-                        'is_bool' => true,
-                        'values' => [
-                            ['id' => 'on', 'value' => 1, 'label' => $this->l('Si')],
-                            ['id' => 'off', 'value' => 0, 'label' => $this->l('No')],
-                        ],
-                    ],
-                    [
-                        'type' => 'switch',
-                        'label' => $this->l('Etichetta con logo?'),
-                        'name' => 'BRT_LABEL_LOGO',
-                        'is_bool' => true,
-                        'values' => [
-                            ['id' => 'on', 'value' => 1, 'label' => $this->l('Si')],
-                            ['id' => 'off', 'value' => 0, 'label' => $this->l('No')],
-                        ],
-                    ],
-                    [
-                        'col' => 3,
-                        'type' => 'text',
-                        'label' => $this->l('Offset X'),
-                        'name' => 'BRT_LABEL_OFFSET_X',
-                    ],
-                    [
-                        'col' => 3,
-                        'type' => 'text',
-                        'label' => $this->l('Offset Y'),
-                        'name' => 'BRT_LABEL_OFFSET_Y',
-                    ],
-                ],
-                'submit' => ['title' => $this->l('Salva')],
-            ],
-        ];
-
-        $helper = new HelperForm();
-        $helper->module = $this;
-        $helper->name_controller = $this->name;
-        $helper->token = Tools::getAdminTokenLite('AdminModules');
-        $helper->currentIndex = AdminController::$currentIndex.'&configure='.$this->name;
-        $helper->default_form_language = (int) Configuration::get('PS_LANG_DEFAULT');
-        $helper->allow_employee_form_lang = Configuration::get('PS_BO_ALLOW_EMPLOYEE_FORM_LANG') ? Configuration::get('PS_BO_ALLOW_EMPLOYEE_FORM_LANG') : 0;
-        $helper->title = $this->displayName;
-        $helper->show_toolbar = false;
-        $helper->submit_action = 'submit_mpbrtapishipment';
-        // Precompila valori
-        $keys = $this->getConfigurationKeys();
-        foreach ($keys as $key) {
-            $value = Configuration::get($key);
-
-            if (in_array($key, ['BRT_EMPLOYEES', 'BRT_PAYMENT_MODULES_COD'])) {
-                $helper->fields_value[$key.'[]'] = explode(',', $value);
-            } else {
-                $helper->fields_value[$key] = $value;
-            }
-        }
-
-        return $output.$helper->generateForm([$fields_form]);
-    }
-
     protected function getCronLinkHtml()
     {
         $path = _PS_MODULE_DIR_.$this->name.'/views/templates/cron/cronLink.tpl';
@@ -475,6 +152,14 @@ class MpBrtApiShipment extends Module
         ]);
 
         return $tpl->fetch();
+    }
+
+    public function getAutoWeightUrl()
+    {
+        $link = Context::getContext()->link;
+        $controllerUrl = $link->getModuleLink($this->name, 'AutoWeight', ['ajax' => 1, 'action' => 'insert']);
+
+        return $controllerUrl;
     }
 
     /**
@@ -536,6 +221,7 @@ class MpBrtApiShipment extends Module
         $controller = Tools::getValue('controller');
         $cssPath = $this->getLocalPath().'views/css/';
         $jsPath = $this->getLocalPath().'views/js/';
+        $assetsPath = $this->getLocalPath().'views/assets/js/';
         $id_order = (int) Tools::getvalue('id_order');
 
         if (in_array($controller, ['AdminOrders', 'AdminModules'])) {
@@ -564,7 +250,9 @@ class MpBrtApiShipment extends Module
                 $jsPath.'swal2/request/SwalNote.js',
                 $jsPath.'swal2/request/SwalSuccess.js',
                 $jsPath.'swal2/request/SwalWarning.js',
-                $jsPath.'admin/MpBrtApiShipment.js',
+                // $jsPath.'admin/MpBrtApiShipment.js',
+                $assetsPath.'admin/AdminOrders.js',
+                $assetsPath.'label/LabelManager.js',
             ]);
             $this->context->controller->addCSS($jsPath.'swal2/sweetalert2.min.css');
         }
@@ -589,39 +277,20 @@ class MpBrtApiShipment extends Module
         $buttons = $params['toolbar_extra_buttons_collection'];
         $id_order = (int) Tools::getValue('id_order');
 
-        if ($isAdminOrderController && $id_order) {
-            $button = new ActionsBarButton(
-                'btn-danger',
-                [
-                    'href' => 'javascript:deleteBrtOrderLabel();',
-                    'icon' => 'delete',
-                    'id' => 'btnDeleteBrtOrderLabel',
-                    'class' => 'btnDeleteBrtOrderLabel',
-                    'data' => [
-                        'action' => 'deleteBrtOrderLabel',
-                        'id_order' => $id_order,
-                    ],
+        $button = new ActionsBarButton(
+            'btn-warning',
+            [
+                'href' => 'javascript:showBrtLabelForm();',
+                'icon' => 'bookmark',
+                'id' => 'btnShowBrtLabelForm',
+                'class' => 'btnShowBrtLabelForm',
+                'data' => [
+                    'action' => 'showBrtLabelForm',
+                    'id_order' => $id_order,
                 ],
-                $this->l('Elimina etichetta BRT')
-            );
-
-            $buttons->add($button);
-
-            $button = new ActionsBarButton(
-                'btn-warning',
-                [
-                    'href' => 'javascript:showBrtLabelForm();',
-                    'icon' => 'bookmark',
-                    'id' => 'btnShowBrtLabelForm',
-                    'class' => 'btnShowBrtLabelForm',
-                    'data' => [
-                        'action' => 'showBrtLabelForm',
-                        'id_order' => $id_order,
-                    ],
-                ],
-                $this->l('Crea etichetta BRT')
-            );
-        }
+            ],
+            $this->l('Etichetta BRT')
+        );
 
         $buttons->add($button);
 
@@ -716,6 +385,18 @@ class MpBrtApiShipment extends Module
         $isModuleAdminController = preg_match('/AdminModules/i', $controller);
         $id_order = (int) Tools::getValue('id_order');
 
+        // service BrtConfiguration
+        $conf = $this->get('MpSoft\MpBrtApiShipment\Services\BrtConfiguration');
+        $labelPreferences = $conf->getSettings();
+
+        // Ottieni il container Symfony
+        $router = SymfonyContainer::getInstance()->get('router');
+
+        // Genera l'URL della route (es: 'mpbrtapishipment_admin_brt_bordero_save_label')
+        $url = $router->generate('mpbrtapishipment_admin_brt_bordero_save_brt_request', [
+            'parameters' => [],
+        ]);
+
         if (!$isAdminOrdersController && !$isModuleAdminController) {
             return '';
         }
@@ -724,11 +405,22 @@ class MpBrtApiShipment extends Module
             $adminController = $this->context->link->getAdminLink('AdminBrtShippingBordero');
             $getLabelLinkURL = $adminController.'&action=getLabelLink';
             $printLabelLinkURL = $adminController.'&action=printLabelByNumericSenderReference';
+            $borderoSaveBrtRequestUrl = $router->generate('mpbrtapishipment_admin_brt_bordero_save_settings');
+            $borderoCreateBrtRequestUrl = $router->generate('mpbrtapishipment_admin_brt_bordero_create_brt_request');
+            $borderoSaveBrtResponseUrl = $router->generate('mpbrtapishipment_admin_brt_bordero_save_brt_response');
+            $borderoReadParcelsUrl = $router->generate('mpbrtapishipment_admin_brt_bordero_read_parcels');
+            $borderoNewLabelUrl = $router->generate('mpbrtapishipment_admin_brt_bordero_new_label');
 
             $script = <<<JS
                 <script type="text/javascript">
                     const getLabelLinkURL = "{$getLabelLinkURL}";
                     const printLabelLinkURL = "{$printLabelLinkURL}";
+                    const borderoSaveBrtRequestUrl = "{$borderoSaveBrtRequestUrl}";
+                    const borderoCreateBrtRequestUrl = "{$borderoCreateBrtRequestUrl}";
+                    const borderoSaveBrtResponseUrl = "{$borderoSaveBrtResponseUrl}";
+                    const borderoReadParcelsUrl = "{$borderoReadParcelsUrl}";
+                    const borderoNewLabelUrl = "{$borderoNewLabelUrl}";
+                    const orderId = {$id_order};
                 </script>
             JS;
 
@@ -777,7 +469,60 @@ class MpBrtApiShipment extends Module
                 </script>
             JS;
 
-            return $script;
+            $twig = $this->renderBrtLabelForm($id_order);
+
+            $style = <<<STYLE
+                <style>
+                    #brt-label-dialog{
+                        width: 100% !important;
+                        height: 80vh !important;
+                        z-index: 10000 !important;
+                        background: transparent;
+                        /* CENTRA DIV NELLA PAGINA */
+                        display: absolute;
+                        top: 50%;
+                        left: 50%;
+                        transform: translate(-50%, -50%);
+                    }
+                    #brt-label-dialog .card {
+                        width: 95% !important;
+                        max-width: 95% !important;
+                        margin: 0 auto !important;
+                    }
+                </style>
+            STYLE;
+
+            $adminController = $this->context->link->getAdminLink('AdminBrtShippingBordero');
+            $getLabelLinkURL = $adminController.'&action=getLabelLink';
+            $printLabelLinkURL = $adminController.'&action=printLabelByNumericSenderReference';
+            $borderoSaveBrtRequestUrl = $router->generate('mpbrtapishipment_admin_brt_bordero_save_brt_request');
+            $borderoCreateBrtRequestUrl = $router->generate('mpbrtapishipment_admin_brt_bordero_create_brt_request');
+            $borderoSaveBrtResponseUrl = $router->generate('mpbrtapishipment_admin_brt_bordero_save_brt_response');
+            $borderoReadParcelsUrl = $router->generate('mpbrtapishipment_admin_brt_bordero_read_parcels');
+            $borderoNewLabelUrl = $router->generate('mpbrtapishipment_admin_brt_bordero_new_label');
+            $borderoFillOrderDetailsUrl = $router->generate('mpbrtapishipment_admin_brt_bordero_fill_order_details');
+            $borderoPrintLabelsUrl = $router->generate('mpbrtapishipment_admin_brt_bordero_print_labels');
+            $labelPrefs = json_encode($labelPreferences, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+            $script = <<<JS
+                <script type="text/javascript">
+                    const borderoPrintLabelsUrl = "{$borderoPrintLabelsUrl}";
+                    const brtLabelUrls = {
+                        getLabelLinkURL: "{$getLabelLinkURL}",
+                        printLabelLinkURL: "{$printLabelLinkURL}",
+                        borderoSaveBrtRequestUrl: "{$borderoSaveBrtRequestUrl}",
+                        borderoCreateBrtRequestUrl: "{$borderoCreateBrtRequestUrl}",
+                        borderoSaveBrtResponseUrl: "{$borderoSaveBrtResponseUrl}",
+                        borderoReadParcelsUrl: "{$borderoReadParcelsUrl}",
+                        borderoNewLabelUrl: "{$borderoNewLabelUrl}",
+                        borderoFillOrderDetailsUrl: "{$borderoFillOrderDetailsUrl}",
+                    };
+                    const orderId = {$id_order};
+                    const labelPreferences = {$labelPrefs};
+                </script>
+            JS;
+
+            return $style.$script.$twig;
         }
 
         if ($isModuleAdminController) {
@@ -797,5 +542,39 @@ class MpBrtApiShipment extends Module
         }
 
         return '';
+    }
+
+    public function renderBrtLabelForm($orderId)
+    {
+        if (!$orderId) {
+            return '';
+        }
+
+        /** @var MpSoft\MpBrtApiShipment\Services\GetOrderLabelDetails $service */
+        $service = $this->get('MpSoft\MpBrtApiShipment\Services\GetOrderLabelDetails');
+
+        /** @var MpSoft\MpBrtApiShipment\Services\BrtConfiguration $conf */
+        $conf = $this->get('MpSoft\MpBrtApiShipment\Services\BrtConfiguration');
+
+        $id_lang = (int) $this->context->getContext()->language->id;
+
+        $twigParams = $service->run($orderId);
+        $otherParams = [
+            'showOrderIdSearch' => false,
+            'cod_currency' => $this->context->getContext()->currency->iso_code,
+            'service_type' => $conf->get('service_type'),
+            'network' => $conf->get('network'),
+            'delivery_freight_type_code' => $conf->get('delivery_freight_type_code'),
+            'cod_payment_type' => $conf->get('cod_payment_type'),
+            'orderStates' => OrderState::getOrderStates($id_lang),
+            'defaultChangeOrderState' => $conf->get('order_state_change'),
+        ];
+        $twigParams = array_merge($twigParams, $otherParams);
+
+        /** @var Twig\Environment $twig */
+        $twig = $this->get('twig');
+        $template = '@Modules/mpbrtapishipment/views/templates/twig/label/label.html.twig';
+
+        return $twig->render($template, $twigParams);
     }
 }

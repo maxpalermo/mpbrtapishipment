@@ -71,10 +71,42 @@ mpbrtapishipment_admin_brt_bordero_permissions:
         _legacy_link: "AdminBrtBordero"
     methods: [GET]
 
+mpbrtapishipment_admin_brt_bordero_read_parcels:
+    path: /admin/brt/bordero/readParcels
+    defaults:
+        _controller: 'MpSoft\MpBrtApiShipment\Controllers\Admin\AdminBrtBorderoController::readParcelsAction'
+        _legacy_controller: "AdminBrtBordero"
+        _legacy_link: "AdminBrtBordero"
+    methods: [POST]
+
 mpbrtapishipment_admin_brt_bordero_save_settings:
     path: /admin/brt/bordero/saveSettings
     defaults:
         _controller: 'MpSoft\MpBrtApiShipment\Controllers\Admin\AdminBrtBorderoController::saveSettingsAction'
+        _legacy_controller: "AdminBrtBordero"
+        _legacy_link: "AdminBrtBordero"
+    methods: [POST]
+
+mpbrtapishipment_admin_brt_bordero_save_brt_request:
+    path: /admin/brt/bordero/saveBrtRequest
+    defaults:
+        _controller: 'MpSoft\MpBrtApiShipment\Controllers\Admin\AdminBrtBorderoController::saveBrtRequestAction'
+        _legacy_controller: "AdminBrtBordero"
+        _legacy_link: "AdminBrtBordero"
+    methods: [POST]
+
+mpbrtapishipment_admin_brt_bordero_create_brt_request:
+    path: /admin/brt/bordero/createBrtRequest
+    defaults:
+        _controller: 'MpSoft\MpBrtApiShipment\Controllers\Admin\AdminBrtBorderoController::createBrtRequestAction'
+        _legacy_controller: "AdminBrtBordero"
+        _legacy_link: "AdminBrtBordero"
+    methods: [POST]
+
+mpbrtapishipment_admin_brt_bordero_save_brt_response:
+    path: /admin/brt/bordero/saveBrtResponse
+    defaults:
+        _controller: 'MpSoft\MpBrtApiShipment\Controllers\Admin\AdminBrtBorderoController::saveBrtResponseAction'
         _legacy_controller: "AdminBrtBordero"
         _legacy_link: "AdminBrtBordero"
     methods: [POST]

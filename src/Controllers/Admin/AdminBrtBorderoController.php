@@ -23,9 +23,13 @@ namespace MpSoft\MpBrtApiShipment\Controllers\Admin;
 
 use Doctrine\DBAL\Connection;
 use MpSoft\MpBrtApiShipment\Api\BrtConfiguration;
-use MpSoft\MpBrtApiShipment\Models\ModelBrtShipmentBordero;
+use MpSoft\MpBrtApiShipment\Helpers\BrtApiManager;
 use MpSoft\MpBrtApiShipment\Models\ModelBrtShipmentResponseLabel;
+use MpSoft\MpBrtApiShipment\Repository\Doctrine\BrtShipmentRequestRepository;
+use MpSoft\MpBrtApiShipment\Repository\Doctrine\BrtShipmentResponseLabelRepository;
+use MpSoft\MpBrtApiShipment\Repository\Doctrine\BrtShipmentResponseRepository;
 use MpSoft\MpBrtApiShipment\Services\GetOrderLabelDetails;
+use MpSoft\MpBrtApiShipment\Services\GetParcelsMeasures;
 use PrestaShop\PrestaShop\Adapter\LegacyContext;
 use PrestaShopBundle\Controller\Admin\FrameworkBundleAdminController;
 use Symfony\Component\HttpFoundation\Request;
@@ -35,21 +39,40 @@ class AdminBrtBorderoController extends FrameworkBundleAdminController
 {
     /** @var \Module */
     private $module;
+    private BrtShipmentRequestRepository $brtShipmentRequestRepository;
+    private BrtShipmentResponseRepository $brtShipmentResponseRepository;
+    private BrtShipmentResponseLabelRepository $brtShipmentResponseLabelRepository;
+    private GetOrderLabelDetails $getOrderLabelDetails;
+    private GetParcelsMeasures $getParcelsMeasures;
+    private LegacyContext $context;
+    private TranslatorInterface $translator;
+    private BrtApiManager $brtApiManager;
 
-    /** @var GetOrderLabelDetails */
-    private $getOrderLabelDetails;
-    /** @var LegacyContext */
-    private $context;
-    /** @var TranslatorInterface */
-    private $translator;
-
-    public function __construct(GetOrderLabelDetails $getOrderLabelDetails, LegacyContext $context, TranslatorInterface $translator)
-    {
+    public function __construct(
+        BrtShipmentRequestRepository $brtShipmentRequestRepository,
+        BrtShipmentResponseRepository $brtShipmentResponseRepository,
+        BrtShipmentResponseLabelRepository $brtShipmentResponseLabelRepository,
+        GetOrderLabelDetails $getOrderLabelDetails,
+        GetParcelsMeasures $getParcelsMeasures,
+        LegacyContext $context,
+        $translator,
+    ) {
         parent::__construct();
+
         $this->module = \Module::getInstanceByName('mpbrtapishipment');
-        $this->getOrderLabelDetails = $getOrderLabelDetails;
         $this->context = $context;
         $this->translator = $translator;
+
+        $this->brtShipmentRequestRepository = $brtShipmentRequestRepository;
+        $this->brtShipmentResponseRepository = $brtShipmentResponseRepository;
+        $this->brtShipmentResponseLabelRepository = $brtShipmentResponseLabelRepository;
+        $this->getOrderLabelDetails = $getOrderLabelDetails;
+        $this->getParcelsMeasures = $getParcelsMeasures;
+        $this->brtApiManager = new BrtApiManager(
+            $this->brtShipmentRequestRepository,
+            $this->brtShipmentResponseRepository,
+            $this->brtShipmentResponseLabelRepository,
+        );
     }
 
     public function indexAction()
@@ -60,6 +83,10 @@ class AdminBrtBorderoController extends FrameworkBundleAdminController
                 'title' => $this->translator->trans('Borderò', [], 'AdminBrtBordero'),
                 'borderoRows' => $this->getBorderoRows(),
                 'menu' => json_encode($this->getMenu()),
+                'labelPreferences' => $this->getSettings(),
+                'labelPermissions' => $this->getLabelPermissions(),
+                'orderStates' => \OrderState::getOrderStates($this->context->getContext()->language->id),
+                'defaultChangeOrderState' => 0,
             ],
         );
     }
@@ -159,11 +186,11 @@ class AdminBrtBorderoController extends FrameworkBundleAdminController
 
         $sql = "
             SELECT
-                b.id_brt_shipment_bordero AS id,
+                r.id_brt_shipment_response AS id,
                 CONCAT(
-                    b.bordero_number,
+                    r.bordero_number,
                     ' del ',
-                    DATE_FORMAT(b.bordero_date, '%d/%m/%Y')
+                    DATE_FORMAT(r.bordero_date, '%d/%m/%Y')
                 ) AS bordero,
                 r.numeric_sender_reference,
                 r.alphanumeric_sender_reference,
@@ -181,12 +208,20 @@ class AdminBrtBorderoController extends FrameworkBundleAdminController
                 r.number_of_parcels,
                 r.weight_kg,
                 r.volume_m3,
-                b.printed_date AS print_date
+                r.printed
             FROM {$prefix}brt_shipment_response r
-            LEFT JOIN {$prefix}brt_shipment_bordero b
-                ON r.id_brt_shipment_response = b.id_brt_shipment_response
-                WHERE b.printed = :printed
             ";
+
+        if ($printed) {
+            $sql .= '
+                WHERE r.printed = 1
+            ';
+        } else {
+            $sql .= '
+                WHERE r.printed = 0
+                OR r.printed IS NULL
+            ';
+        }
 
         if ($searchTerm) {
             $sql .= '
@@ -210,7 +245,7 @@ class AdminBrtBorderoController extends FrameworkBundleAdminController
         }
 
         $sql .= '
-                ORDER BY b.id_brt_shipment_bordero DESC
+                ORDER BY r.id_brt_shipment_response ASC
             ';
 
         /** @var \Doctrine\DBAL\Statement $stmt */
@@ -218,8 +253,6 @@ class AdminBrtBorderoController extends FrameworkBundleAdminController
         if ($searchTerm) {
             $stmt->bindValue('searchTerm', '%'.pSQL($searchTerm).'%');
         }
-        $stmt->bindValue('printed', (int) $printed);
-
         $result = $stmt->executeQuery();
         $rows = $result->fetchAllAssociative();
 
@@ -252,9 +285,11 @@ class AdminBrtBorderoController extends FrameworkBundleAdminController
 
     public function newLabelAction(Request $request)
     {
+        $conf = new BrtConfiguration();
         $content = $request->getContent();
         $data = json_decode($content, true);
         $showOrderId = $data['showOrderId'] ?? false;
+        $id_lang = (int) $this->context->getContext()->language->id;
 
         return $this->json([
             'dialog' => $this->renderView(
@@ -262,6 +297,12 @@ class AdminBrtBorderoController extends FrameworkBundleAdminController
                 [
                     'showOrderIdSearch' => $showOrderId,
                     'cod_currency' => $this->context->getContext()->currency->iso_code,
+                    'service_type' => $conf->get('service_type'),
+                    'network' => $conf->get('network'),
+                    'delivery_freight_type_code' => $conf->get('delivery_freight_type_code'),
+                    'cod_payment_type' => $conf->get('cod_payment_type'),
+                    'orderStates' => \OrderState::getOrderStates($id_lang),
+                    'defaultChangeOrderState' => 0,
                 ]
             ),
         ]);
@@ -293,7 +334,7 @@ class AdminBrtBorderoController extends FrameworkBundleAdminController
 
     public function printAllLabelsAction(Request $request)
     {
-        $ids = ModelBrtShipmentBordero::getIdList();
+        $ids = $this->brtShipmentResponseRepository->getBorderoRowsId();
 
         if (!$ids) {
             return $this->json([
@@ -312,12 +353,13 @@ class AdminBrtBorderoController extends FrameworkBundleAdminController
         $prefix = _DB_PREFIX_;
         $sql = "
             SELECT
-                lbl.stream
-            FROM {$prefix}brt_shipment_response_label lbl
-            INNER JOIN {$prefix}brt_shipment_response b ON b.id_brt_shipment_response = lbl.id_brt_shipment_response
-            INNER JOIN {$prefix}brt_shipment_bordero a ON a.id_brt_shipment_response = b.id_brt_shipment_response
-            WHERE a.id_brt_shipment_bordero IN (:ids)
-            ORDER BY a.id_brt_shipment_bordero ASC
+                stream
+            FROM 
+                {$prefix}brt_shipment_response_label
+            WHERE
+                numeric_sender_reference IN (:ids)
+            ORDER BY
+                numeric_sender_reference ASC, number ASC
         ";
         $result = $conn->executeQuery($sql, ['ids' => implode(',', $ids)]);
         $streams = [];
@@ -358,11 +400,15 @@ class AdminBrtBorderoController extends FrameworkBundleAdminController
     public function showPreferencesAction()
     {
         $settings = $this->getSettings();
+        $id_lang = (int) $this->context->getContext()->language->id;
 
         $html = $this->renderView(
             '@Modules/mpbrtapishipment/views/templates/twig/preferences/preferences.html.twig',
             [
                 'settings' => $settings,
+                'orderStates' => \OrderState::getOrderStates($id_lang),
+                'cashOnDeliveryModules' => \PaymentModule::getPaymentModules(),
+                'autoweightControllerURL' => \Module::getInstanceByName('mpbrtapishipment')->getAutoWeightUrl(),
             ]
         );
 
@@ -383,31 +429,29 @@ class AdminBrtBorderoController extends FrameworkBundleAdminController
         );
     }
 
+    public function readParcelsAction(Request $request)
+    {
+        $content = $request->getContent();
+        $data = json_decode($content, true);
+        $numericSenderReference = (int) $data['numericSenderReference'] ?? false;
+
+        if (!$numericSenderReference) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Label non valido',
+            ]);
+        }
+
+        $response = $this->getParcelsMeasures->run($numericSenderReference);
+
+        return $this->json($response);
+    }
+
     protected function getSettings()
     {
         $conf = new BrtConfiguration();
 
-        return [
-            'BRT_ENVIRONMENT' => $conf->get('environment'),
-            'BRT_SANDBOX_USER_ID' => $conf->get('sandbox_user_id'),
-            'BRT_SANDBOX_PASSWORD' => $conf->get('sandbox_password'),
-            'BRT_SANDBOX_DEPARTURE_DEPOT' => $conf->get('sandbox_departure_depot'),
-            'BRT_PRODUCTION_USER_ID' => $conf->get('production_user_id'),
-            'BRT_PRODUCTION_PASSWORD' => $conf->get('production_password'),
-            'BRT_PRODUCTION_DEPARTURE_DEPOT' => $conf->get('production_departure_depot'),
-            'BRT_SERVICE_TYPE' => $conf->get('service_type'),
-            'BRT_NETWORK' => $conf->get('network'),
-            'BRT_DELIVERY_FREIGHT_TYPE_CODE' => $conf->get('delivery_freight_type_code'),
-            'BRT_COD_PAYMENT_TYPE' => $conf->get('cod_payment_type'),
-            'BRT_IS_ALERT_REQUIRED' => $conf->get('is_alert_required'),
-            'BRT_IS_LABEL_PRINTED' => $conf->get('is_label_printed'),
-            'BRT_LABEL_TYPE' => $conf->get('label_type'),
-            'BRT_IS_BORDER_PRINTED' => $conf->get('is_border_printed'),
-            'BRT_IS_BARCODE_PRINTED' => $conf->get('is_barcode_printed'),
-            'BRT_IS_LOGO_PRINTED' => $conf->get('is_logo_printed'),
-            'BRT_LABEL_OFFSET_X' => $conf->get('label_offset_x'),
-            'BRT_LABEL_OFFSET_Y' => $conf->get('label_offset_y'),
-        ];
+        return $conf->getSettings();
     }
 
     protected function getPermissions()
@@ -423,6 +467,11 @@ class AdminBrtBorderoController extends FrameworkBundleAdminController
         $data = json_decode($content, true);
         $preferences = $data['preferences'] ?? [];
         $permissions = $data['permissions'] ?? [];
+        $result =
+            [
+                'success' => true,
+                'message' => 'nessuna impostazione da salvare',
+            ];
 
         if ($preferences) {
             $result = $this->savePreferences($preferences);
@@ -435,28 +484,24 @@ class AdminBrtBorderoController extends FrameworkBundleAdminController
         return $this->json($result);
     }
 
+    protected function getLabelPermissions()
+    {
+        return [
+            'create' => $this->isGranted('CREATE_LABEL'),
+            'read' => $this->isGranted('READ_LABEL'),
+            'update' => $this->isGranted('UPDATE_LABEL'),
+            'delete' => $this->isGranted('DELETE_LABEL'),
+            'employees' => \Employee::getEmployees(),
+        ];
+    }
+
     protected function savePreferences($preferences)
     {
         $conf = new BrtConfiguration();
-        $conf->set('environment', $preferences['BRT_ENVIRONMENT'] ?? 'SANDVBOX');
-        $conf->set('sandbox_user_id', $preferences['BRT_SANDBOX_USER_ID'] ?? '');
-        $conf->set('sandbox_password', $preferences['BRT_SANDBOX_PASSWORD'] ?? '');
-        $conf->set('sandbox_departure_depot', $preferences['BRT_SANDBOX_DEPARTURE_DEPOT'] ?? '');
-        $conf->set('production_user_id', $preferences['BRT_PRODUCTION_USER_ID'] ?? '');
-        $conf->set('production_password', $preferences['BRT_PRODUCTION_PASSWORD'] ?? '');
-        $conf->set('production_departure_depot', $preferences['BRT_PRODUCTION_DEPARTURE_DEPOT'] ?? '');
-        $conf->set('service_type', $preferences['BRT_SERVICE_TYPE'] ?? '');
-        $conf->set('network', $preferences['BRT_NETWORK'] ?? '');
-        $conf->set('delivery_freight_type_code', $preferences['BRT_DELIVERY_FREIGHT_TYPE_CODE'] ?? '');
-        $conf->set('cod_payment_type', $preferences['BRT_COD_PAYMENT_TYPE'] ?? '');
-        $conf->set('is_alert_required', $preferences['BRT_IS_ALERT_REQUIRED'] ?? '');
-        $conf->set('is_label_printed', $preferences['BRT_IS_LABEL_PRINTED'] ?? '');
-        $conf->set('label_type', $preferences['BRT_LABEL_TYPE'] ?? '');
-        $conf->set('is_border_printed', $preferences['BRT_IS_BORDER_PRINTED'] ?? '');
-        $conf->set('is_barcode_printed', $preferences['BRT_IS_BARCODE_PRINTED'] ?? '');
-        $conf->set('is_logo_printed', $preferences['BRT_IS_LOGO_PRINTED'] ?? '');
-        $conf->set('label_offset_x', $preferences['BRT_LABEL_OFFSET_X'] ?? '');
-        $conf->set('label_offset_y', $preferences['BRT_LABEL_OFFSET_Y'] ?? '');
+        $keys = $conf->getConfigurationKeys();
+        foreach ($keys as $key) {
+            $conf->set($key, $preferences);
+        }
 
         return [
             'success' => true,
@@ -467,18 +512,101 @@ class AdminBrtBorderoController extends FrameworkBundleAdminController
     protected function savePermissions($permissions)
     {
         $conf = new BrtConfiguration();
-        $conf->set('environment', $permissions['BRT_ENVIRONMENT']);
-        $conf->set('sandbox_user_id', $permissions['BRT_SANDBOX_USER_ID']);
-        $conf->set('sandbox_password', $permissions['BRT_SANDBOX_PASSWORD']);
-        $conf->set('production_user_id', $permissions['BRT_PRODUCTION_USER_ID']);
-        $conf->set('production_password', $permissions['BRT_PRODUCTION_PASSWORD']);
-        $conf->set('sandbox_departure_depot', $permissions['BRT_SANDBOX_DEPARTURE_DEPOT']);
-        $conf->set('production_departure_depot', $permissions['BRT_PRODUCTION_DEPARTURE_DEPOT']);
-        $conf->set('cod_payment_type', $permissions['BRT_COD_PAYMENT_TYPE']);
+        $conf->set('environment', $permissions['BRT_ENVIRONMENT'] ?? 'SANDVBOX');
+        $conf->set('sandbox_user_id', $permissions['BRT_SANDBOX_USER_ID'] ?? '');
+        $conf->set('sandbox_password', $permissions['BRT_SANDBOX_PASSWORD'] ?? '');
+        $conf->set('production_user_id', $permissions['BRT_PRODUCTION_USER_ID'] ?? '');
+        $conf->set('production_password', $permissions['BRT_PRODUCTION_PASSWORD'] ?? '');
+        $conf->set('sandbox_departure_depot', $permissions['BRT_SANDBOX_DEPARTURE_DEPOT'] ?? '');
+        $conf->set('production_departure_depot', $permissions['BRT_PRODUCTION_DEPARTURE_DEPOT'] ?? '');
+        $conf->set('cod_payment_type', $permissions['BRT_COD_PAYMENT_TYPE'] ?? '');
 
         return [
             'success' => true,
             'message' => 'Impostazioni salvate con successo',
         ];
+    }
+
+    protected function toCamelCaseArray($array)
+    {
+        $newArray = [];
+        foreach ($array as $key => $value) {
+            if ('consignee_zip_code' == $key) {
+                $newArray['consigneeZIPCode'] = $value;
+            } elseif ('weight_kg' == $key) {
+                $newArray['weightKG'] = $value;
+            } elseif ('consignee_email' == $key) {
+                $newArray['consigneeEMail'] = $value;
+            } elseif ('is_cod_mandatory' == $key) {
+                $newArray['isCODMandatory'] = $value;
+            } elseif ('consignee_country_abbreviation_iso_alpha_2' == $key) {
+                $newArray['consigneeCountryAbbreviationISOAlpha2'] = $value;
+            } elseif (preg_match('/_/', $key)) {
+                $newArray[\Tools::toCamelCase($key)] = $value;
+            } else {
+                $newArray[$key] = $value;
+            }
+        }
+
+        return $newArray;
+    }
+
+    /***********************
+     *** API BRT MANAGER ***
+     ***********************/
+    public function createBrtRequestAction(Request $request)
+    {
+        $content = $request->getContent();
+        $data = json_decode($content, true);
+        $numericSenderReference = $data['numericSenderReference'] ?? false;
+
+        if (!$numericSenderReference) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Label non valido',
+            ]);
+        }
+
+        $result = $this->brtApiManager->createBrtRequest($numericSenderReference);
+
+        return $this->json($result);
+    }
+
+    public function saveBrtRequestAction(Request $request)
+    {
+        $content = $request->getContent();
+        $data = json_decode($content, true);
+        $numericSenderReference = (int) ($data['labelId'] ?? $data['label']['numeric_sender_reference']);
+        $labelDetails = $data['label'] ?? [];
+        $packages = $data['packages'] ?? [];
+
+        if (!$numericSenderReference) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Label ID non valido',
+            ]);
+        }
+
+        if (!$labelDetails) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Dettagli etichetta non validi',
+            ]);
+        }
+
+        $result = $this->brtApiManager->saveBrtRequest($numericSenderReference, $labelDetails, $packages);
+
+        return $this->json($result);
+    }
+
+    public function saveBrtResponseAction(Request $request)
+    {
+        $content = $request->getContent();
+        $data = json_decode($content, true);
+        $executionMessage = $data['executionMessage'] ?? false;
+        $response = $data['response'] ?? false;
+        $labels = $data['labels'] ?? [];
+
+        return $this->json($this->brtApiManager->saveBrtResponse($executionMessage, $response, $labels));
     }
 }

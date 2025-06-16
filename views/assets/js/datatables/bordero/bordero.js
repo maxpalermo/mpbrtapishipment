@@ -1,3 +1,5 @@
+let LabelManagerInstance = null;
+
 /**
  * Aggiorna i dati di una DataTable.
  * @param {Array} dataRows - L'array dei dati da visualizzare nella tabella.
@@ -8,6 +10,62 @@ function refreshDataTable(dataRows, tableId) {
     table.clear();
     table.rows.add(dataRows);
     table.draw();
+}
+
+async function newBrtLabel() {
+    LabelManagerInstance = new LabelManager(borderoUrls);
+    await LabelManagerInstance.init();
+    LabelManagerInstance.showModal();
+}
+
+async function createLabel() {
+    LabelManagerInstance.createLabel();
+}
+
+function loadBrtLabelData() {
+    LabelManagerInstance.loadFromStorage();
+}
+
+async function fillOrderDetails(button) {
+    const inputId = button.dataset.inputId;
+    const inputOrderId = document.getElementById(inputId);
+    if (!inputOrderId) {
+        alert("Elemento input non trovato.");
+        return;
+    }
+    const orderId = inputOrderId.value;
+    if (!orderId) {
+        alert("Inserisci un id ordine valido.");
+        return;
+    }
+    await LabelManagerInstance.fillOrderDetails(orderId);
+}
+
+async function saveSettings() {
+    const dialog = document.getElementById("brt-label-settings-dialog");
+    const form = document.getElementById("brt-label-settings-form");
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData.entries());
+    data["BRT_CASH_ON_DELIVERY_MODULES[]"] = formData.getAll("BRT_CASH_ON_DELIVERY_MODULES[]");
+
+    console.log(data);
+
+    const response = await fetch(borderoSaveSettingsUrl, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-Requested-With": "XMLHttpRequest"
+        },
+        body: JSON.stringify({ preferences: data })
+    });
+    const result = await response.json();
+    const success = result.success || false;
+    if (success) {
+        dialog.close();
+        alert("Impostazioni salvate.");
+    } else {
+        alert(result.message || "Errore durante il salvataggio delle impostazioni.");
+    }
 }
 
 async function showLastBordero() {
@@ -42,7 +100,11 @@ async function showHistory() {
 
 async function printLabels(button) {
     const ids = [];
-    const rowId = button.getAttribute("data-row-id");
+    const rowId = button.dataset.rowId;
+    if (!rowId) {
+        alert("Errore: Id etichetta non valido.");
+        return false;
+    }
     ids.push(rowId);
     const response = await fetch(borderoPrintLabelsUrl, {
         method: "POST",
@@ -92,78 +154,6 @@ function setupToolbarDatatableSearch(datatableInstance) {
     }
 }
 
-async function newBrtLabel() {
-    const response = await fetch(borderoNewLabelUrl, {
-        method: "POST",
-        body: JSON.stringify({
-            showOrderId: true
-        })
-    });
-    const data = await response.json();
-    const dialog = data.dialog || null;
-    if (dialog) {
-        const template = document.createElement("template");
-        template.innerHTML = dialog.trim();
-        const dialogElement = template.content.querySelector("dialog");
-        if (dialogElement) {
-            // Rimuovi eventuale dialog precedente con stesso id
-            const oldDialog = document.getElementById(dialogElement.id);
-            if (oldDialog) oldDialog.remove();
-            document.body.appendChild(dialogElement);
-            dialogElement.showModal();
-        } else {
-            alert("Errore durante la creazione del form etichetta.");
-        }
-    } else {
-        alert("Errore durante la creazione del form etichetta.");
-    }
-}
-
-function toggleCashOnDelivery(value) {
-    console.log("toggleCashOnDelivery", value);
-    const cashOnDelivery = document.getElementById("cash_on_delivery");
-    const codPaymentType = document.getElementById("cod_payment_type");
-    if (value === 1) {
-        cashOnDelivery.disabled = false;
-        codPaymentType.disabled = false;
-    } else {
-        cashOnDelivery.disabled = true;
-        codPaymentType.disabled = true;
-    }
-}
-
-async function fillOrderDetails(button) {
-    const orderIdInputId = button.getAttribute("data-input-id");
-    const orderId = document.getElementById(orderIdInputId).value;
-    if (!orderId) {
-        alert("Inserisci un id ordine valido.");
-        return;
-    }
-    const request = await fetch(borderoFillOrderDetailsUrl, {
-        method: "POST",
-        body: JSON.stringify({
-            orderId: orderId
-        })
-    });
-    const response = await request.json();
-    const success = response.success || false;
-    if (success) {
-        const orderDetails = response.data.details || null;
-        if (orderDetails) {
-            Object.entries(orderDetails).forEach(([key, value]) => {
-                console.log("element", key, value);
-
-                const el = document.getElementById(key);
-                if (el) {
-                    el.value = value;
-                }
-            });
-        } else {
-            alert("Ordine non trovato");
-        }
-    }
-}
-
 async function showPreferences() {
     const response = await fetch(borderoPreferencesUrl, { method: "GET" });
     const data = await response.json();
@@ -186,29 +176,17 @@ async function showPreferences() {
     }
 }
 
-async function saveSettings() {
-    const dialog = document.getElementById("brt-label-settings-dialog");
-    const form = document.getElementById("form-brt-label-settings");
-    const formData = new FormData(form);
-    const data = Object.fromEntries(formData.entries());
-    const response = await fetch(borderoSaveSettingsUrl, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "X-Requested-With": "XMLHttpRequest"
-        },
-        body: JSON.stringify({ preferences: data })
-    });
-    const result = await response.json();
-    const success = result.success || false;
-    if (success) {
-        dialog.close();
-        alert("Impostazioni salvate.");
+async function readParcels() {
+    const numericSenderReferenceElement = document.getElementById("numeric_sender_reference");
+    if (numericSenderReferenceElement) {
+        const numericSenderReference = numericSenderReferenceElement.value;
+        if (numericSenderReference) {
+            await LabelManagerInstance.readParcels(numericSenderReference);
+        } else {
+            alert("Inserisci un identificativo etichetta valido (numericSenderReference)");
+        }
     } else {
-        alert(
-            result.message ||
-                "Errore durante il salvataggio delle impostazioni."
-        );
+        alert("Elemento NumericSenderReference non trovato");
     }
 }
 
@@ -289,7 +267,6 @@ document.addEventListener("DOMContentLoaded", function() {
                 data: "print_date",
                 name: "print_date",
                 render: function(data, type, row, meta) {
-                    console.log("data received:", data);
                     if (!data) return "--";
                     // controlla se la data ha questo formato 0000-00-00 00:00:00
                     if (data === "0000-00-00 00:00:00") return "--";
@@ -306,17 +283,16 @@ document.addEventListener("DOMContentLoaded", function() {
                 orderable: false,
                 searchable: false,
                 render: function(data, type, row, meta) {
-                    console.log("data action received:", data);
                     if (type === "display") {
                         return `
                             <div class="btn-group" role="group">
-                                <button type="button" class="btn btn-info btn-sm" data-tooltip-text="Vedi etichetta" data-row-id="${row.id}" onclick="viewLabel(this)" title="Vedi etichetta">
+                                <button type="button" class="btn btn-info btn-sm" data-tooltip-text="Vedi etichetta" data-row-id="${data.numeric_sender_reference}" onclick="viewLabel(this)" title="Vedi etichetta">
                                     <span class="material-icons">preview</span>
                                 </button>
-                                <button type="button" class="btn btn-secondary btn-sm" data-tooltip-text="Stampa etichetta" data-row-id="${row.id}" onclick="printLabels(this)" title="Stampa etichetta">
+                                <button type="button" class="btn btn-secondary btn-sm" data-tooltip-text="Stampa etichetta" data-row-id="${data.numeric_sender_reference}" onclick="printLabels(this)" title="Stampa etichetta">
                                     <span class="material-icons">print</span>
                                 </button>
-                                <button type="button" class="btn btn-danger btn-sm" data-tooltip-text="Elimina etichetta" data-row-id="${row.id}" onclick="deleteLabel(this)" title="Elimina etichetta">
+                                <button type="button" class="btn btn-danger btn-sm" data-tooltip-text="Elimina etichetta" data-row-id="${data.numeric_sender_reference}" onclick="deleteLabel(this)" title="Elimina etichetta">
                                     <span class="material-icons">delete</span>
                                 </button>
                             </div>

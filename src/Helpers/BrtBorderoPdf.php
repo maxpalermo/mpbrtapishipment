@@ -30,12 +30,18 @@ class BrtBorderoPdf extends \TCPDF
     public const PDF_ORIENTATION_LANDSCAPE = 'L';
     private $rows;
     private $force;
+    private $tplRows;
 
     public function __construct($rows, $force = null)
     {
         $this->rows = $rows;
         $this->force = $force;
         parent::__construct(self::PDF_ORIENTATION_LANDSCAPE, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
+    }
+
+    public function getRows()
+    {
+        return $this->rows;
     }
 
     public function header()
@@ -148,24 +154,15 @@ class BrtBorderoPdf extends \TCPDF
             'stretchtext' => 4,
         ];
 
-        $cellStyles = $this->setCellStyle();
+        $rows = $this->getFormattedRows();
+        $htmlTable = $this->renderHtmlPage();
 
-        $module = \Module::getInstanceByName('mpbrtapishipment');
-        $template = $module->getLocalPath().'views/templates/bordero/page.tpl';
-        $smarty = \Context::getContext()->smarty->createTemplate($template);
-        $smarty->assign(
-            [
-                'cellstyle' => $cellStyles,
-                'rows' => $this->rows,
-            ]
-        );
-
-        $html = $smarty->fetch();
-        $this->writeHTML($html);
+        $this->writeHTML($htmlTable);
 
         // LAST PAGE
         $this->AddPage();
         $this->SetFont('helvetica', '', 12);
+        $module = \Module::getInstanceByName('mpbrtapishipment');
         $template = $module->getLocalPath().'views/templates/bordero/riepilogo.tpl';
         $smarty = \Context::getContext()->smarty->createTemplate($template);
         $smarty->assign(
@@ -178,96 +175,194 @@ class BrtBorderoPdf extends \TCPDF
         $this->writeHTML($html);
 
         // ---------------------------------------------------------
-
         $filename = 'bordero_'.date('YmdHis').'.pdf';
-        $file_attachment['content'] = $this->Output($filename, 'S');
-        $file_attachment['name'] = $filename;
-        $file_attachment['mime'] = 'application/pdf';
-        // Close and output PDF document
-        if ($this->setPrinted()) {
-            $this->Output($filename, 'I');
-        } else {
-            \Tools::dieObject(
-                [
-                    'ERRORE' => 'NON È POSSIBILE STAMPARE IL BORDERO',
-                    'MESSAGGIO' => 'ERRORE DURANTE IL SALVATAGGIO DEL BORDERO',
-                ]
-            );
-        }
+
+        return [
+            'success' => true,
+            'pdf' => base64_encode($this->Output($filename, 'S')),
+            'ids' => array_column($this->rows, 'id_brt_shipment_response'),
+        ];
     }
 
-    private function setCellStyle()
+    private function printPdf()
     {
+        $filename = 'bordero_'.date('YmdHis').'.pdf';
+        $this->Output($filename, 'I');
+    }
+
+    private function getFormattedRows()
+    {
+        $rows = $this->rows;
         $cellStyle = $this->getCellStyle();
-        foreach ($cellStyle as &$c) {
-            $style = [];
-            foreach ($c as $key => $value) {
-                if ('label1' != $key && 'label2' != $key) {
-                    $style[] = $key.': '.$value.';';
-                }
+        $output = [];
+
+        foreach ($rows as $row) {
+            $tplRow = [];
+            foreach ($cellStyle as $key => $value) {
+                $tplRow[$key] = [
+                    'row1' => [
+                        'label' => $value['row1'],
+                        'style' => $this->formatStyle($value['style']),
+                        'value' => $this->formatCellValue('row1', $value, $row),
+                    ],
+                    'row2' => [
+                        'label' => $value['row2'],
+                        'style' => $this->formatStyle($value['style']),
+                        'value' => $this->formatCellValue('row2', $value, $row),
+                    ],
+                ];
             }
-            $c['style'] = implode('', $style);
+            $output[] = $tplRow;
         }
 
-        return $cellStyle;
+        $this->tplRows = $output;
+
+        return $output;
+    }
+
+    private function formatStyle($style)
+    {
+        $styleString = '';
+        foreach ($style as $key => $value) {
+            $styleString .= $key.': '.$value.';';
+        }
+
+        return $styleString;
+    }
+
+    private function formatCellValue($row, $style, $values)
+    {
+        $fields = $style['fields'][$row];
+        $value = '';
+        foreach ($fields as $field) {
+            $value .= $values[$field].' ';
+        }
+
+        return trim($value);
     }
 
     private function getCellStyle()
     {
         return [
-            [
-                'label1' => 'Destinatario',
-                'label2' => '',
-                'width' => '6cm',
-                'text-align' => 'left',
+            'col01' => [
+                'row1' => 'Destinatario',
+                'row2' => '',
+                'style' => [
+                    'width' => '6cm',
+                    'text-align' => 'left',
+                ],
+                'fields' => [
+                    'row1' => [
+                        'consignee_company_name',
+                    ],
+                    'row2' => [],
+                ],
             ],
-            [
-                'label1' => 'Indirizzo',
-                'label2' => 'Cap Città Prov',
-                'width' => '6cm',
-                'text-align' => 'left',
+            'col02' => [
+                'row1' => 'Indirizzo',
+                'row2' => 'Cap Città Prov',
+                'style' => [
+                    'width' => '6cm',
+                    'text-align' => 'left',
+                ],
+                'fields' => [
+                    'row1' => [
+                        'consignee_address',
+                    ],
+                    'row2' => [
+                        'consignee_zip_code',
+                        'consignee_city',
+                        'consignee_province_abbreviation',
+                    ],
+                ],
             ],
-            [
-                'label1' => 'Rif. numerico',
-                'label2' => 'Riferimento',
-                'width' => '3cm',
-                'text-align' => 'center',
+            'col03' => [
+                'row1' => 'Rif. numerico',
+                'row2' => 'Riferimento',
+                'style' => [
+                    'width' => '3cm',
+                    'text-align' => 'center',
+                ],
+                'fields' => [
+                    'row1' => [
+                        'numeric_sender_reference',
+                    ],
+                    'row2' => [
+                        'alphanumeric_sender_reference',
+                    ],
+                ],
             ],
-            [
-                'label1' => 'Cod',
-                'label2' => 'Bolla',
-                'width' => '1cm',
-                'text-align' => 'right',
+            'col04' => [
+                'row1' => 'Cod',
+                'row2' => 'Bolla',
+                'style' => [
+                    'width' => '1cm',
+                    'text-align' => 'right',
+                ],
+                'fields' => [
+                    'row1' => [],
+                    'row2' => [],
+                ],
             ],
-            [
-                'label1' => 'Importo',
-                'label2' => 'C/ass',
-                'width' => '2cm',
-                'text-align' => 'right',
+            'col05' => [
+                'row1' => 'Importo',
+                'row2' => 'C/ass',
+                'style' => [
+                    'width' => '2cm',
+                    'text-align' => 'right',
+                ],
+                'fields' => [
+                    'row1' => [
+                        'cash_on_delivery',
+                    ],
+                    'row2' => [],
+                ],
             ],
-            [
-                'label1' => 'Colli',
-                'label2' => '',
-                'width' => '1cm',
-                'text-align' => 'right',
+            'col06' => [
+                'row1' => 'Colli',
+                'row2' => '',
+                'style' => [
+                    'width' => '1cm',
+                    'text-align' => 'right',
+                ],
+                'fields' => [
+                    'row1' => [
+                        'number_of_parcels',
+                    ],
+                    'row2' => [],
+                ],
             ],
-            [
-                'label1' => 'Peso',
-                'label2' => '',
-                'width' => '2cm',
-                'text-align' => 'right',
+            'col07' => [
+                'row1' => 'Peso',
+                'row2' => 'Volume',
+                'style' => [
+                    'width' => '3cm',
+                    'text-align' => 'right',
+                ],
+                'fields' => [
+                    'row1' => [
+                        'weight_kg',
+                    ],
+                    'row2' => [
+                        'volume_m3',
+                    ],
+                ],
             ],
-            [
-                'label1' => 'Volume',
-                'label2' => '',
-                'width' => '3cm',
-                'text-align' => 'right',
-            ],
-            [
-                'label1' => 'Segnacolli',
-                'label2' => 'Dal - Al',
-                'width' => '3cm',
-                'text-align' => 'center',
+            'col08' => [
+                'row1' => 'Segnacolli',
+                'row2' => 'Dal - Al',
+                'style' => [
+                    'width' => '3cm',
+                    'text-align' => 'center',
+                ],
+                'fields' => [
+                    'row1' => [
+                        'parcel_number_from',
+                    ],
+                    'row2' => [
+                        'parcel_number_to',
+                    ],
+                ],
             ],
         ];
     }
@@ -308,25 +403,142 @@ class BrtBorderoPdf extends \TCPDF
         foreach ($this->rows as $row) {
             ++$result['spedizioni'];
 
-            foreach ($row as $cell) {
-                $data = $cell['data'];
-
-                if (isset($data['numberOfParcels'])) {
-                    $result['colli'] += $data['numberOfParcels'];
-                }
-                if (isset($data['cashOnDelivery']) && $data['cashOnDelivery'] > 0) {
-                    ++$result['numcass'];
-                    $result['cashOnDelivery'] += $data['cashOnDelivery'];
-                }
-                if (isset($data['weightKg'])) {
-                    $result['weightKg'] += $data['weightKg'];
-                }
-                if (isset($data['volumeM3'])) {
-                    $result['volumeM3'] += $data['volumeM3'];
-                }
+            if (isset($row['number_of_parcels'])) {
+                $result['colli'] += $row['number_of_parcels'];
+            }
+            if (isset($row['cash_on_delivery']) && $row['cash_on_delivery'] > 0) {
+                ++$result['numcass'];
+                $result['cashOnDelivery'] += $row['cash_on_delivery'];
+            }
+            if (isset($row['weight_kg'])) {
+                $result['weightKg'] += $row['weight_kg'];
+            }
+            if (isset($row['volume_m3'])) {
+                $result['volumeM3'] += $row['volume_m3'];
             }
         }
 
         return $result;
+    }
+
+    private function renderHtmlPage()
+    {
+        $cols = count($this->tplRows[0] ?? []);
+        $html = <<<HTML
+            <table cellborder="0" cellspacing="0">
+                <thead>
+                    {$this->getTableHeader()}
+                    <tr>
+                        <th colspan="{$cols}">
+                            <hr>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {$this->getTableBody()}
+                </tbody>
+            </table>
+        HTML;
+
+        return $html;
+    }
+
+    private function getTableHeader()
+    {
+        $html = '';
+        $row = $this->tplRows[0] ?? [];
+        $row1 = [];
+        $row2 = [];
+        foreach ($row as $column) {
+            $row1[] = $column['row1'];
+            $row2[] = $column['row2'];
+        }
+        $html .= "<tr>\n";
+        foreach ($row1 as $cell) {
+            $html .= "<th style=\"font-weight: bold; {$cell['style']}\">{$cell['label']}</th>\n";
+        }
+        $html .= "</tr>\n";
+        $html .= "<tr>\n";
+        foreach ($row2 as $cell) {
+            $html .= "<th style=\"font-weight: bold; {$cell['style']}\">{$cell['label']}</th>\n";
+        }
+        $html .= "</tr>\n";
+
+        return $html;
+    }
+
+    private function getTableBody()
+    {
+        $html = '';
+        $rows = $this->tplRows ?? [];
+        foreach ($rows as $cols) {
+            $row1 = [];
+            $row2 = [];
+            foreach ($cols as $cell) {
+                $row1[] = $cell['row1'];
+                $row2[] = $cell['row2'];
+            }
+            $html .= "<tr>\n";
+            foreach ($row1 as $cell) {
+                $label = $cell['label'];
+                $value = $cell['value'];
+                if (strlen($value) > 30) {
+                    $value = substr($value, 0, 30);
+                }
+
+                switch (strtolower($label)) {
+                    case 'importo':
+                        $value = (float) $value;
+                        if ($value) {
+                            $value = number_format($value, 2, ',', '.');
+                        } else {
+                            $value = '--';
+                        }
+                        break;
+                    case 'peso':
+                        $peso = (float) $value;
+                        if ($peso) {
+                            $value = number_format($peso, 1, ',', '.').' Kg';
+                        }
+                        break;
+                    case 'volume':
+                        $volume = (float) $value;
+                        if ($volume) {
+                            $value = number_format($volume, 3, ',', '.').' m3';
+                        }
+                        break;
+                    default:
+                        break;
+                }
+
+                $html .= "<td style=\"{$cell['style']}\">{$value}</td>\n";
+            }
+            $html .= "</tr>\n";
+            $html .= "<tr>\n";
+            foreach ($row2 as $cell) {
+                $label = $cell['label'];
+
+                $value = $cell['value'];
+                if (strlen($value) > 30) {
+                    $value = substr($value, 0, 30);
+                }
+
+                switch (strtolower($label)) {
+                    case 'volume':
+                        $volume = (float) $value;
+                        if ($volume) {
+                            $value = number_format($volume, 3, ',', '.').' m3';
+                        }
+                        break;
+                    default:
+                        break;
+                }
+
+                $html .= "<td style=\"font-weight: bold; {$cell['style']}\">{$value}</td>\n";
+            }
+            $html .= "</tr>\n";
+        }
+
+        return $html;
     }
 }

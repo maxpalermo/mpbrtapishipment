@@ -19,9 +19,6 @@
  * @license   https://opensource.org/licenses/AFL-3.0 Academic Free License version 3.0
  */
 
-use Doctrine\ORM\EntityManagerInterface;
-use MpSoft\MpBrtApiShipment\Entity\BrtShipmentResponseLabel;
-
 class MpBrtApiShipmentAutoWeightModuleFrontController extends ModuleFrontController
 {
     protected $name;
@@ -29,25 +26,19 @@ class MpBrtApiShipmentAutoWeightModuleFrontController extends ModuleFrontControl
     public function __construct()
     {
         $this->auth = false;
-        $this->guestAllowed = false;
-        $this->maintenance = false;
+        $this->guestAllowed = true;
+        $this->maintenance = true;
         $this->ssl = (int) Configuration::get('PS_SSL_ENABLED');
         $this->ajax = Tools::getValue('ajax', 0);
 
         parent::__construct();
 
         $this->name = 'AutoWeight';
-    }
 
-    public function display()
-    {
         $action = Tools::getValue('action');
-        if ('insert' == $action) {
-            $measure = $this->getMeasure();
-            $insert = $this->insertMeasure($measure);
+        if ($action && 'insert' == $action) {
+            exit($this->insertMeasure($this->getMeasure()));
         }
-
-        exit('NOT ALLOWED');
     }
 
     protected function getMeasure()
@@ -57,17 +48,17 @@ class MpBrtApiShipmentAutoWeightModuleFrontController extends ModuleFrontControl
         $numericSenderReference = (int) $parts[0];
         $number = (int) $parts[1];
         $params = [
-            'numericSenderReference' => $numericSenderReference,
+            'numeric_sender_reference' => $numericSenderReference,
             'number' => $number,
             'weight' => (float) Tools::getValue('PPESO'),
             'volume' => (float) Tools::getValue('PVOLU'),
             'x' => (int) Tools::getValue('X'),
             'y' => (int) Tools::getValue('Y'),
             'z' => (int) Tools::getValue('Z'),
-            'fiscalId' => Tools::getValue('ID_FISCALE'),
-            'isRead' => Tools::getValue('PFLAG'),
-            'isEnvelope' => Tools::getValue('ENVELOPE'),
-            'measureDate' => Tools::getValue('PTIMP', date('Y-m-d H:i:s')),
+            'fiscal_id' => Tools::getValue('ID_FISCALE'),
+            // 'is_read' => Tools::getValue('PFLAG'),
+            // 'is_envelope' => Tools::getValue('ENVELOPE'),
+            'measure_date' => Tools::getValue('PTIMP', date('Y-m-d H:i:s')),
         ];
 
         return $params;
@@ -75,32 +66,25 @@ class MpBrtApiShipmentAutoWeightModuleFrontController extends ModuleFrontControl
 
     protected function insertMeasure($measure)
     {
-        /** @var EntityManagerInterface $entityManager */
-        $entityManager = $this->container->get('doctrine.orm.entity_manager');
+        $db = Db::getInstance();
+        $sql = new DbQuery();
+        $sql->select('id_brt_shipment_response_label')
+            ->from('brt_shipment_response_label')
+            ->where('numeric_sender_reference = '.$measure['numeric_sender_reference'])
+            ->where('number = '.$measure['number']);
+        $id = $db->getValue($sql);
+        if ($id) {
+            $result = $db->update('brt_shipment_response_label', $measure, 'id_brt_shipment_response_label = '.$id);
+        } else {
+            $result = $db->insert('brt_shipment_response_label', $measure, true, false);
+        }
 
-        // Create product comment
-        $label = new BrtShipmentResponseLabel();
-        $label
-            ->setNumericSenderReference($measure['numericSenderReference'])
-            ->setNumber($measure['number'])
-            ->setWeight($measure['weight'])
-            ->setVolume($measure['volume'])
-            ->setX($measure['x'])
-            ->setY($measure['y'])
-            ->setZ($measure['z'])
-            ->setFiscalId($measure['fiscalId'])
-            ->setpFlag($measure['pFlag'])
-        ;
-        // This call adds the entity to the EntityManager scope (now it knows the entity exists)
-        $entityManager->persist($label);
+        $message = $result ? 'Dati salvati con successo' : 'Errore durante il salvataggio';
 
-        // This call validates all previous modification (modified/persisted entities)
-        // This is when the database queries are performed
-        $entityManager->flush();
-
-        $this->ajaxRender(json_encode([
-            'success' => true,
-            'label' => $label->toArray(),
+        return $this->ajaxRender(json_encode([
+            'success' => $result,
+            'message' => $message,
+            'params' => $measure,
         ]));
     }
 }

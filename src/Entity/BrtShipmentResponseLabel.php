@@ -55,7 +55,7 @@ class BrtShipmentResponseLabel
     /**
      * @ORM\Column(type="datetime", name="measure_date", nullable=true)
      */
-    private string $measureDate;
+    private ?\DateTimeInterface $measureDate = null;
 
     /**
      * @ORM\Column(type="integer", options={"default":0})
@@ -71,6 +71,20 @@ class BrtShipmentResponseLabel
      * @ORM\Column(type="integer", options={"default":0})
      */
     private int $z = 0;
+
+    public function getMeasureDate(): ?\DateTimeInterface
+    {
+        return $this->measureDate;
+    }
+
+    public function setMeasureDate($measureDate): self
+    {
+        if (is_string($measureDate)) {
+            $measureDate = new \DateTime($measureDate);
+        }
+        $this->measureDate = $measureDate;
+        return $this;
+    }
 
     /**
      * @ORM\Column(type="decimal", precision=5, scale=1, options={"default":1.0})
@@ -202,18 +216,6 @@ class BrtShipmentResponseLabel
     public function setNumber(int $val): self
     {
         $this->number = $val;
-
-        return $this;
-    }
-
-    public function getMeasureDate(): string
-    {
-        return $this->measureDate;
-    }
-
-    public function setMeasureDate(string $val): self
-    {
-        $this->measureDate = $val;
 
         return $this;
     }

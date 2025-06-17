@@ -24,6 +24,7 @@ namespace MpSoft\MpBrtApiShipment\Controllers\Admin;
 use Doctrine\DBAL\Connection;
 use MpSoft\MpBrtApiShipment\Api\BrtConfiguration;
 use MpSoft\MpBrtApiShipment\Helpers\BrtApiManager;
+use MpSoft\MpBrtApiShipment\Helpers\BrtBorderoPdf;
 use MpSoft\MpBrtApiShipment\Models\ModelBrtShipmentResponseLabel;
 use MpSoft\MpBrtApiShipment\Repository\Doctrine\BrtShipmentRequestRepository;
 use MpSoft\MpBrtApiShipment\Repository\Doctrine\BrtShipmentResponseLabelRepository;
@@ -123,12 +124,6 @@ class AdminBrtBorderoController extends FrameworkBundleAdminController
                             [
                                 'type' => 'link',
                                 'icon' => 'print',
-                                'label' => 'Stampa bordero',
-                                'href' => 'javascript:printBordero();',
-                            ],
-                            [
-                                'type' => 'link',
-                                'icon' => 'print',
                                 'label' => 'Stampa etichette',
                                 'href' => 'javascript:printAllLabels();',
                             ],
@@ -143,7 +138,7 @@ class AdminBrtBorderoController extends FrameworkBundleAdminController
                 'children' => [
                     [
                         'type' => 'link',
-                        'icon' => 'print',
+                        'icon' => 'tab',
                         'label' => 'Ultimo bordero',
                         'href' => 'javascript:showLastBordero();',
                     ],
@@ -152,6 +147,15 @@ class AdminBrtBorderoController extends FrameworkBundleAdminController
                         'icon' => 'history',
                         'label' => 'Storico bordero',
                         'href' => 'javascript:showHistory();',
+                    ],
+                    [
+                        'type' => 'divider',
+                    ],
+                    [
+                        'type' => 'link',
+                        'icon' => 'print',
+                        'label' => 'Stampa bordero',
+                        'href' => 'javascript:printBordero();',
                     ],
                 ],
             ],
@@ -344,6 +348,66 @@ class AdminBrtBorderoController extends FrameworkBundleAdminController
         }
 
         return $this->json($this->getPdfLabels($ids));
+    }
+
+    public function printBorderoAction(Request $request)
+    {
+        $prefix = _DB_PREFIX_;
+        $content = $request->getContent();
+        $data = json_decode($content, true);
+        $number = $data['number'] ?? false;
+        $date = $data['date'] ?? false;
+
+        if (!$number || !$date) {
+            // Stampo l'ultimo bordero non stampato
+            $query = "
+                SELECT
+                    *
+                FROM
+                    {$prefix}brt_shipment_response
+                WHERE
+                    printed = 0
+                    OR printed is NULL
+                ORDER BY
+                    id_brt_shipment_response ASC
+            ";
+            $result = $this->getDoctrine()->getConnection()->executeQuery($query);
+            $list = $result->fetchAllAssociative();
+        } else {
+            // Stampo il bordero con il numero e la data specificata
+            $query = "
+                SELECT
+                    *
+                FROM
+                    {$prefix}brt_shipment_response
+                WHERE
+                    numeric_sender_reference = :number
+                    AND DATE(date_add) = :date
+                ORDER BY
+                    id_brt_shipment_response ASC
+            ";
+            $result = $this->getDoctrine()->getConnection()->executeQuery($query, [
+                'number' => $number,
+                'date' => $date,
+            ]);
+            $list = $result->fetchAllAssociative();
+        }
+
+        if (!$list) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Nessun bordero trovato',
+            ]);
+        }
+
+        $borderoPdf = new BrtBorderoPdf($list);
+        $result = $borderoPdf->render();
+
+        return $this->json([
+            'success' => $result['success'],
+            'pdfBase64' => $result['pdf'],
+            'ids' => $result['ids'],
+        ]);
     }
 
     public function getPdfLabels($ids)

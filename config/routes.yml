@@ -1,5 +1,10 @@
 # modules/mpbrtapishipment/config/routes.yml
 
+mpbrtapishipment_get_measures:
+    path: /module/mpbrtapishipment/get-measures
+    controller: 'Mpbrtapishipment\Services\MeasureReceiverController::getMeasures'
+    methods: [GET]
+
 mpbrtapishipment_admin_brt_bordero_index:
     path: /admin/brt/bordero
     defaults:
@@ -35,6 +40,14 @@ mpbrtapishipment_admin_brt_bordero_print_all_labels:
     path: /admin/brt/bordero/printAllLabels
     defaults:
         _controller: 'MpSoft\MpBrtApiShipment\Controllers\Admin\AdminBrtBorderoController::printAllLabelsAction'
+        _legacy_controller: "AdminBrtBordero"
+        _legacy_link: "AdminBrtBordero"
+    methods: [POST]
+
+mpbrtapishipment_admin_brt_bordero_print_bordero:
+    path: /admin/brt/bordero/printBordero
+    defaults:
+        _controller: 'MpSoft\MpBrtApiShipment\Controllers\Admin\AdminBrtBorderoController::printBorderoAction'
         _legacy_controller: "AdminBrtBordero"
         _legacy_link: "AdminBrtBordero"
     methods: [POST]

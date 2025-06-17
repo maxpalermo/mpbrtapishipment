@@ -53,16 +53,16 @@ Nella sezione "Preferenze" del modulo puoi configurare i seguenti parametri:
 - Utilizza le azioni rapide per generare nuove etichette, stampare, caricare dati o modificare le preferenze.
 - Per modificare le impostazioni, clicca su "Preferenze" e salva i parametri desiderati.
 
-## Integrazione bilancia fiscale tramite endpoint AutoWeight
+## Integrazione bilancia fiscale tramite endpoint pesatura (Symfony)
 
-Il modulo espone un endpoint dedicato per ricevere i dati di pesatura direttamente da una bilancia fiscale o da dispositivi esterni tramite chiamata HTTP parametrizzata.
+Il modulo espone un endpoint moderno e sicuro per ricevere i dati di pesatura direttamente da una bilancia fiscale o da dispositivi esterni tramite chiamata HTTP parametrizzata. Si consiglia di utilizzare questo endpoint Symfony rispetto al legacy `AutoWeight`.
 
-**Endpoint:**
+**Nuovo endpoint consigliato:**
 ```
-https://tuosito.it/module/mpbrtapishipment/AutoWeight
+https://tuosito.it/module/mpbrtapishipment/get-measures
 ```
 
-**Parametri accettati:**
+**Parametri accettati (GET):**
 - `PECOD` (Codice prodotto)
 - `PPESO` (Peso)
 - `PVOLU` (Volume)
@@ -71,14 +71,37 @@ https://tuosito.it/module/mpbrtapishipment/AutoWeight
 - `Z` (Dimensione Z in mm)
 - `ID_FISCALE` (ID fiscale)
 - `PFLAG` (Flag personalizzato)
-- `PTIMP` (Parametro aggiuntivo)
+- `ENVELOPE` (Busta, opzionale)
+- `PTIMP` (Timestamp o parametro aggiuntivo, opzionale)
 
 **Esempio di chiamata:**
 ```
-https://tuosito.it/module/mpbrtapishipment/AutoWeight?PECOD=12345&PPESO=10.5&PVOLU=0.020&X=10&Y=20&Z=30&ID_FISCALE=IT12345678901&PFLAG=1&PTIMP=0
+https://tuosito.it/module/mpbrtapishipment/get-measures?PECOD=12345&PPESO=10.5&PVOLU=0.020&X=10&Y=20&Z=30&ID_FISCALE=IT12345678901&PFLAG=1&ENVELOPE=0&PTIMP=2025-06-17+11:25:00
 ```
 
-L'endpoint restituisce una risposta JSON con conferma di ricezione dei dati. Puoi personalizzare la logica di gestione dei dati nel controller `AutoWeightController.php` del modulo.
+**Risposta JSON:**
+```json
+{
+  "success": true,
+  "message": "Dati ricevuti e salvati",
+  "data": {
+    "numericSenderReference": "12345",
+    "number": 1,
+    "weight": 10.5,
+    "volume": 0.02,
+    "x": 10,
+    "y": 20,
+    "z": 30,
+    "fiscalId": "IT12345678901",
+    "pFlag": 1,
+    "envelope": 0,
+    "measureDate": "2025-06-17 11:25:00"
+  },
+  "id": 123
+}
+```
+
+> **Nota:** L'endpoint legacy `/module/mpbrtapishipment/AutoWeight` è ancora disponibile per retrocompatibilità, ma si raccomanda di utilizzare il nuovo endpoint Symfony `/module/mpbrtapishipment/get-measures` per tutte le nuove integrazioni.
 
 ## Guida pratica: Doctrine ORM in PrestaShop 8
 

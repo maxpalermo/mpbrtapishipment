@@ -190,6 +190,52 @@ async function readParcels() {
     }
 }
 
+async function printBordero() {
+    const confirm = await swalConfirm("Stampare il borderò?");
+    if (!confirm) {
+        return false;
+    }
+
+    const request = await fetch(borderoPrintBorderoUrl, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-Requested-With": "XMLHttpRequest"
+        },
+        body: JSON.stringify({
+            searchTerm: $("#toolbar-search-input").val()
+        })
+    });
+    const data = await request.json();
+    const success = data.success || false;
+    if (success) {
+        const pdfBase64 = data.pdfBase64 || "";
+        const ids = data.ids || [];
+        if (!pdfBase64) {
+            alert("Errore durante la stampa");
+            return false;
+        }
+
+        //Aggiornamento righe per impostare la stampa
+        /*
+        TODO
+        */
+
+        // Decodifica base64 in array di byte
+        const byteCharacters = atob(pdfBase64);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: "application/pdf" });
+        const url = URL.createObjectURL(blob);
+        window.open(url, "_blank");
+    } else {
+        alert(data.message || "Errore durante la stampa");
+    }
+}
+
 document.addEventListener("DOMContentLoaded", function() {
     searchBtn = document.getElementById("toolbar-search-btn");
     searchInput = document.getElementById("toolbar-search-input");

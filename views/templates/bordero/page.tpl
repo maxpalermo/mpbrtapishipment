@@ -16,40 +16,4 @@
  * @copyright Since 2016 Massimiliano Palermo
  * @license   https://opensource.org/licenses/AFL-3.0 Academic Free License version 3.0
  *}
-<table cellborder="0" cellspacing="0">
-    <thead>
-        <tr>
-            {foreach $cellstyle as $key => $row}
-                <th style="{$cellstyle[$key].style}">{$row.label1}</th>
-            {/foreach}
-        </tr>
-        <tr>
-            {foreach $cellstyle as $key => $row}
-                <th style="{$cellstyle[$key].style}">{$row.label2}</th>
-            {/foreach}
-        </tr>
-        <tr>
-            <th colspan="9">
-                <hr>
-            </th>
-        </tr>
-    </thead>
-    <tbody>
-        {foreach $rows as $row}
-            <tr>
-                {foreach $row as $key => $cell}
-                    <td style="{$cellstyle[$key].style}">
-                        {$cell.row1|upper}
-                    </td>
-                {/foreach}
-            </tr>
-            <tr>
-                {foreach $row as $key => $cell}
-                    <td style="{$cellstyle[$key].style}">
-                        <strong>{$cell.row2|upper}</strong>
-                    </td>
-                {/foreach}
-            </tr>
-        {/foreach}
-    </tbody>
-</table>
+{$html}

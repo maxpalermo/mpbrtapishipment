@@ -10,6 +10,7 @@ async function instanceLabelManager() {
     labelManagerInstance = new LabelManager(brtLabelUrls);
     await labelManagerInstance.init();
     labelManagerInstance.fillOrderDetails(orderId);
+    document.getElementById("brt-label-toolbar").style.display = "none";
     labelManagerInstance.showModal();
 }
 
@@ -24,6 +25,20 @@ async function createLabel() {
 async function showLastBordero() {
     labelManagerInstance.closeModal();
     printLabel(orderId);
+}
+
+async function readParcels() {
+    const numericSenderReferenceElement = document.getElementById("numeric_sender_reference");
+    if (numericSenderReferenceElement) {
+        const numericSenderReference = numericSenderReferenceElement.value;
+        if (numericSenderReference) {
+            await labelManagerInstance.readParcels(numericSenderReference);
+        } else {
+            alert("Inserisci un identificativo etichetta valido (numericSenderReference)");
+        }
+    } else {
+        alert("Elemento NumericSenderReference non trovato");
+    }
 }
 
 async function printLabel(orderId) {

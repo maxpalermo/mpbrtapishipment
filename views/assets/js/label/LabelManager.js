@@ -131,9 +131,18 @@ class LabelManager {
         const parcels = response.parcels || [];
 
         if (success) {
-            this.parcels = parcels;
+            this.parcels = this.parcelsCalculation(parcels);
             this.fillPackageTable();
+            this.packagingCalculation();
         }
+    }
+
+    parcelsCalculation(parcels) {
+        parcels.forEach(parcel => {
+            parcel.volume = Number((parcel.x * parcel.y * parcel.z) / 1000000000).toFixed(3);
+        });
+
+        return parcels;
     }
 
     emptyRow() {

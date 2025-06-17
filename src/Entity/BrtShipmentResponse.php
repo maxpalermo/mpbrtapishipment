@@ -637,8 +637,11 @@ class BrtShipmentResponse
         return $this->dateAdd;
     }
 
-    public function setDateAdd(\DateTimeInterface $dateAdd): self
+    public function setDateAdd($dateAdd): self
     {
+        if (is_string($dateAdd)) {
+            $dateAdd = new \DateTime($dateAdd);
+        }
         $this->dateAdd = $dateAdd;
 
         return $this;
@@ -653,8 +656,11 @@ class BrtShipmentResponse
         return $this->dateUpd;
     }
 
-    public function setDateUpd(\DateTimeInterface $dateUpd): self
+    public function setDateUpd($dateUpd): self
     {
+        if (is_string($dateUpd)) {
+            $dateUpd = new \DateTime($dateUpd);
+        }
         $this->dateUpd = $dateUpd;
 
         return $this;

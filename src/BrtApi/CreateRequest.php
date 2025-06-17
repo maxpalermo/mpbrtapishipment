@@ -108,4 +108,24 @@ class CreateRequest
             ];
         }
     }
+
+    public function getCreateData()
+    {
+        return $this->createData;
+    }
+
+    public function getLabelParameters()
+    {
+        return $this->labelParameters;
+    }
+
+    public function isLabelRequired()
+    {
+        return $this->isLabelRequired;
+    }
+
+    public function getAccount()
+    {
+        return $this->account;
+    }
 }

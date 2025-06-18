@@ -51,6 +51,11 @@
         <input type="hidden" id="isAlertRequired" name="isAlertRequired" value="1">
         <div class="card">
             <div class="card-header">
+                {% if brt_environment == 'SANDBOX' %}
+                <div class="d-flex justify-content-center align-items-center">
+                    <span class="badge bg-warning text-white" style="font-size: 1.5rem;">SANDBOX</span>
+                </div>
+                {% endif %}
                 <h5 id="brt-label-toolbar" class="card-title" {% if not showOrderIdSearch %} style="display: none;" {% endif %}>
                     <div class="d-flex justify-content-between align-items-center">
                         <div class="search-container d-flex justify-content-start align-items-center">

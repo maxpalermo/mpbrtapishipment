@@ -307,6 +307,7 @@ class AdminBrtBorderoController extends FrameworkBundleAdminController
                     'cod_payment_type' => $conf->get('cod_payment_type'),
                     'orderStates' => \OrderState::getOrderStates($id_lang),
                     'defaultChangeOrderState' => 0,
+                    'brt_environment' => $conf->get('environment'),
                 ]
             ),
         ]);

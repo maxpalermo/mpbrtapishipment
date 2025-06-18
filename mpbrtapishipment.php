@@ -276,23 +276,24 @@ class MpBrtApiShipment extends Module
         $isAdminOrderController = preg_match('/AdminOrders/i', $params['controller']->controller_name);
         $buttons = $params['toolbar_extra_buttons_collection'];
         $id_order = (int) Tools::getValue('id_order');
-
-        $button = new ActionsBarButton(
-            'btn-warning',
-            [
-                'href' => 'javascript:showBrtLabelForm();',
-                'icon' => 'bookmark',
-                'id' => 'btnShowBrtLabelForm',
-                'class' => 'btnShowBrtLabelForm',
-                'data' => [
-                    'action' => 'showBrtLabelForm',
-                    'id_order' => $id_order,
+        if ($isAdminOrderController && $id_order > 0) {
+            $button = new ActionsBarButton(
+                'btn-warning',
+                [
+                    'href' => 'javascript:showBrtLabelForm();',
+                    'icon' => 'bookmark',
+                    'id' => 'btnShowBrtLabelForm',
+                    'class' => 'btnShowBrtLabelForm',
+                    'data' => [
+                        'action' => 'showBrtLabelForm',
+                        'id_order' => $id_order,
+                    ],
                 ],
-            ],
-            $this->l('Etichetta BRT')
-        );
+                $this->l('Etichetta BRT')
+            );
 
-        $buttons->add($button);
+            $buttons->add($button);
+        }
 
         return '';
     }
@@ -568,6 +569,7 @@ class MpBrtApiShipment extends Module
             'cod_payment_type' => $conf->get('cod_payment_type'),
             'orderStates' => OrderState::getOrderStates($id_lang),
             'defaultChangeOrderState' => $conf->get('order_state_change'),
+            'brt_environment' => $conf->get('environment'),
         ];
         $twigParams = array_merge($twigParams, $otherParams);
 

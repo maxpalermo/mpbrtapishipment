@@ -1,14 +1,14 @@
-async function swalConfirm(message) {
+async function swalConfirm(message, title = "Conferma", icon = "question", confirmButtonText = "Si", cancelButtonText = "No") {
     return new Promise((resolve, reject) => {
         Swal.fire({
-            title: "Confirm",
+            title: title,
             html: message,
-            icon: "question",
+            icon: icon,
             showCancelButton: true,
-            confirmButtonText: "Si",
-            cancelButtonText: "Annulla",
+            confirmButtonText: confirmButtonText,
+            cancelButtonText: cancelButtonText,
             confirmButtonColor: "#25b9d7"
-        }).then((result) => {
+        }).then(result => {
             if (result.isConfirmed) {
                 resolve(true);
             } else {

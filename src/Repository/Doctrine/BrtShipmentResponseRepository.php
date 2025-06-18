@@ -126,9 +126,17 @@ class BrtShipmentResponseRepository
 
     public function getLastBorderoNumber()
     {
-        $lastBorderoNumber = $this->entityManager->getRepository(BrtShipmentResponse::class)->findOneBy(['borderoNumber' => 'is NOT NULL'], ['id' => 'ASC']);
+        $prefix = _DB_PREFIX_;
+        $QUERY = "
+            SELECT MAX(bordero_number) as last_bordero_number
+            FROM {$prefix}brt_shipment_response
+            WHERE bordero_number IS NOT NULL
+            AND printed = 1
+        ";
+        $result = $this->entityManager->getConnection()->executeQuery($QUERY);
+        $lastBorderoNumber = $result->fetchAssociative();
 
-        return (int) $lastBorderoNumber->getBorderoNumber();
+        return (int) $lastBorderoNumber['last_bordero_number'];
     }
 
     public function getUnprintedBorderoRows()
@@ -186,5 +194,23 @@ class BrtShipmentResponseRepository
     {
         $this->entityManager->persist($entity);
         $this->entityManager->flush();
+    }
+
+    public function updatePrinted($ids)
+    {
+        $ids_string = implode(',', $ids);
+        $prefix = _DB_PREFIX_;
+        $bordero_number = $this->getLastBorderoNumber() + 1;
+        $bordero_date = date('Y-m-d H:i:s');
+
+        $QUERY = "
+            UPDATE {$prefix}brt_shipment_response
+            SET printed = 1,
+                bordero_number = {$bordero_number},
+                bordero_date = '{$bordero_date}'
+            WHERE id_brt_shipment_response IN ($ids_string)";
+        $result = $this->entityManager->getConnection()->executeQuery($QUERY);
+
+        return $result;
     }
 }

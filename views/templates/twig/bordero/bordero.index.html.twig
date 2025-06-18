@@ -3,8 +3,9 @@
 
 {% block stylesheets %}
 	{{ parent() }}
-	<link href="https://cdn.datatables.net/v/bs4/moment-2.29.4/jszip-3.10.1/dt-2.3.2/af-2.7.0/b-3.2.3/b-colvis-3.2.3/b-html5-3.2.3/cr-2.1.1/cc-1.0.4/date-1.5.5/fc-5.0.4/fh-4.0.2/kt-2.12.1/r-3.0.4/rg-1.5.1/rr-1.5.0/sc-2.4.3/sb-1.8.2/sp-2.3.3/sl-3.0.1/sr-1.4.1/datatables.min.css" rel="stylesheet" integrity="sha384-p+Yzba94TQmyeybVpFr06W/ZuGO5eXmC3FYgFH/+Dq41KMsOb8ipyu26kA1ZgTj2" crossorigin="anonymous">
+	<link href="{{ asset('../modules/mpbrtapishipment/views/assets/components/datatables/datatables.min.css') }}" rel="stylesheet">
 	<link href="{{ asset('../modules/mpbrtapishipment/views/assets/components/swal/sweetalert2.min.css') }}" rel="stylesheet">
+	<link href="{{ asset('../modules/mpbrtapishipment/views/assets/components/select2/select2.min.css') }}" rel="stylesheet">
 {% endblock %}
 
 {% block content %}
@@ -21,6 +22,7 @@
 	{{ parent() }}
 	<script type="text/javascript">
 		// Url Controller
+		const datatablesLangUrl = "{{ asset('../modules/mpbrtapishipment/views/assets/components/datatables/it-IT.json') }}";
 		const borderoUrl = '{{ path("mpbrtapishipment_admin_brt_bordero_get_table_data") }}';
 		const borderoHistoryUrl = '{{ path("mpbrtapishipment_admin_brt_bordero_get_history_table_data") }}';
 		const borderoPrintLabelsUrl = '{{ path("mpbrtapishipment_admin_brt_bordero_print_labels") }}';
@@ -36,13 +38,15 @@
 		const borderoSaveBrtResponseUrl = '{{ path("mpbrtapishipment_admin_brt_bordero_save_brt_response") }}';
 		const borderoReadParcelsUrl = '{{ path("mpbrtapishipment_admin_brt_bordero_read_parcels") }}';
 		const borderoPrintBorderoUrl = '{{ path("mpbrtapishipment_admin_brt_bordero_print_bordero") }}';
+		const borderoUpdatePrintedStatusUrl = '{{ path("mpbrtapishipment_admin_brt_bordero_update_printed") }}';
 		const borderoUrls = {
 			borderoSaveBrtRequestUrl: borderoSaveBrtRequestUrl,
 			borderoCreateBrtRequestUrl: borderoCreateBrtRequestUrl,
 			borderoSaveBrtResponseUrl: borderoSaveBrtResponseUrl,
 			borderoReadParcelsUrl: borderoReadParcelsUrl,
 			borderoNewLabelUrl: borderoNewLabelUrl,
-			borderoFillOrderDetailsUrl: borderoFillOrderDetailsUrl
+			borderoFillOrderDetailsUrl: borderoFillOrderDetailsUrl,
+			borderoUpdatePrintedStatusUrl: borderoUpdatePrintedStatusUrl
 		};
 		// Costanti preferenze etichetta
 		const labelPreferences = {
@@ -60,9 +64,10 @@
 	</script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js" integrity="sha384-VFQrHzqBh5qiJIU0uGU5CIW3+OWpdGGJM9LBnGbuIH2mkICcFZ7lPd/AAtI7SNf7" crossorigin="anonymous"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js" integrity="sha384-/RlQG9uf0M2vcTw3CX7fbqgbj/h8wKxw7C3zu9/GxcBPRKOEcESxaxufwRXqzq6n" crossorigin="anonymous"></script>
-	<script src="https://cdn.datatables.net/v/bs4/moment-2.29.4/jszip-3.10.1/dt-2.3.2/af-2.7.0/b-3.2.3/b-colvis-3.2.3/b-html5-3.2.3/cr-2.1.1/cc-1.0.4/date-1.5.5/fc-5.0.4/fh-4.0.2/kt-2.12.1/r-3.0.4/rg-1.5.1/rr-1.5.0/sc-2.4.3/sb-1.8.2/sp-2.3.3/sl-3.0.1/sr-1.4.1/datatables.min.js" integrity="sha384-KWqNmuIDo2cTHVQMmNsEhEFjyJ0Im9MR5ogk2ZqJ3zyx8hOGVAjmpSduXJvfbxC5" crossorigin="anonymous"></script>
-	<script src="{{ asset('../modules/mpbrtapishipment/views/assets/js/datatables/bordero/bordero.js') }}"></script>
-	<script src="{{ asset('../modules/mpbrtapishipment/views/assets/js/label/LabelManager.js') }}"></script>
+	<script src="{{ asset('../modules/mpbrtapishipment/views/assets/components/datatables/datatables.min.js') }}"></script>
 	<script src="{{ asset('../modules/mpbrtapishipment/views/assets/components/swal/sweetalert2.all.min.js') }}"></script>
 	<script src="{{ asset('../modules/mpbrtapishipment/views/assets/components/swal/swalConfirm.js') }}"></script>
+	<script src="{{ asset('../modules/mpbrtapishipment/views/assets/components/select2/select2.min.js') }}"></script>
+	<script src="{{ asset('../modules/mpbrtapishipment/views/assets/js/controllers/bordero.js') }}"></script>
+	<script src="{{ asset('../modules/mpbrtapishipment/views/assets/js/label/LabelManager.js') }}"></script>
 {% endblock %}

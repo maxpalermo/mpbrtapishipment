@@ -216,10 +216,7 @@ async function printBordero() {
             return false;
         }
 
-        //Aggiornamento righe per impostare la stampa
-        /*
-        TODO
-        */
+        await updateBorderoPrintedStatus(ids);
 
         // Decodifica base64 in array di byte
         const byteCharacters = atob(pdfBase64);
@@ -233,6 +230,26 @@ async function printBordero() {
         window.open(url, "_blank");
     } else {
         alert(data.message || "Errore durante la stampa");
+    }
+}
+
+async function updateBorderoPrintedStatus(ids) {
+    if (ids.length === 0) {
+        return;
+    }
+
+    const response = await fetch(borderoUpdatePrintedStatusUrl, {
+        method: "POST",
+        body: JSON.stringify({
+            ids: ids
+        })
+    });
+    const data = await response.json();
+    const success = data.success || false;
+    if (success) {
+        dt.ajax.reload();
+    } else {
+        alert(data.message || "Errore durante l'aggiornamento");
     }
 }
 
@@ -264,7 +281,7 @@ document.addEventListener("DOMContentLoaded", function() {
         responsive: false,
         scrollX: true,
         language: {
-            url: "//cdn.datatables.net/plug-ins/1.13.4/i18n/it-IT.json"
+            url: typeof datatablesLangUrl !== "undefined" ? datatablesLangUrl : ""
         },
         order: [[1, "desc"]],
         columns: [
@@ -353,11 +370,11 @@ document.addEventListener("DOMContentLoaded", function() {
     $("#bordero-datatable").on("preDraw.dt", function() {
         $(this)
             .find("tbody")
-            .fadeOut(150);
+            .fadeOut(50);
     });
     $("#bordero-datatable").on("draw.dt", function() {
         $(this)
             .find("tbody")
-            .fadeIn(150);
+            .fadeIn(50);
     });
 });

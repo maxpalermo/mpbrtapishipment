@@ -166,14 +166,6 @@
                     <input type="text" name="BRT_PRICING_CONDITION_CODE" id="BRT_PRICING_CONDITION_CODE" class="form-control" value="{{ settings.pricing_condition_code }}">
                 </div>
                 <div class="form-group">
-                    <label for="BRT_ORDER_STATE_CHANGE">Stato ordine</label>
-                    <select name="BRT_ORDER_STATE_CHANGE" id="BRT_ORDER_STATE_CHANGE" class="form-control">
-                        {% for orderState in orderStates %}
-                            <option value="{{ orderState.id_order_state }}" {% if settings.order_state_change == orderState.id_order_state %}selected{% endif %}>{{ orderState.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="form-group">
                     <label for="BRT_SENDER_PARCEL_TYPE">Tipo di merce</label>
                     <input type="text" name="BRT_SENDER_PARCEL_TYPE" id="BRT_SENDER_PARCEL_TYPE" class="form-control" value="{{ settings.sender_parcel_type }}">
                 </div>
@@ -187,6 +179,29 @@
                         <span class="slide-button"></span>
                     </div>
                 </div>
+                <fieldset>
+                    <legend>Impostazioni di sistema</legend>
+                    <div class="row p-4">
+                        <div class="d-flex d-flex-100 justify-content-between align-items-center gap-2">
+                            <div class="form-group">
+                                <label for="BRT_ORDER_STATE_CHANGE">Cambia lo stato d'ordine in</label>
+                                <select name="BRT_ORDER_STATE_CHANGE" id="BRT_ORDER_STATE_CHANGE" class="form-control">
+                                    {% for orderState in orderStates %}
+                                        <option value="{{ orderState.id_order_state }}" {% if settings.order_state_change == orderState.id_order_state %}selected{% endif %}>{{ orderState.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="BRT_ORDER_STATE_SHOW_BUTTON">Visualizza il pulsante crea etichetta</label>
+                                <select name="BRT_ORDER_STATE_SHOW_BUTTON" id="BRT_ORDER_STATE_SHOW_BUTTON" class="form-control">
+                                    {% for orderState in orderStates %}
+                                        <option value="{{ orderState.id_order_state }}" {% if settings.order_state_show_button == orderState.id_order_state %}selected{% endif %}>{{ orderState.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </fieldset>
                 <fieldset>
                     <legend>Etichetta</legend>
                     <div class="row p-4">

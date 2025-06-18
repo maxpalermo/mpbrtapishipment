@@ -410,6 +410,34 @@ class AdminBrtBorderoController extends FrameworkBundleAdminController
         ]);
     }
 
+    public function updatePrintedAction(Request $request)
+    {
+        $content = $request->getContent();
+        $data = json_decode($content, true);
+        $ids = $data['ids'] ?? [];
+        if (!$ids) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Nessun segnacollo selezionato',
+            ]);
+        }
+
+        $ids = array_unique(array_map(fn (int $id) => (int) $id, $ids));
+
+        if (empty($ids)) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Nessun segnacollo selezionato',
+            ]);
+        }
+
+        $result = $this->brtShipmentResponseRepository->updatePrinted($ids);
+
+        return $this->json([
+            'success' => $result,
+        ]);
+    }
+
     public function getPdfLabels($ids)
     {
         /** @var Connection */

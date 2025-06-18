@@ -75,6 +75,7 @@ final class BrtConfiguration
             'label_is_barcode_control_row_required',
             'label_format',
             'order_state_change',
+            'order_state_show_button',
             'sender_customer_code',
             'pricing_condition_code',
             'sender_parcel_type',

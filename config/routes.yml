@@ -52,6 +52,14 @@ mpbrtapishipment_admin_brt_bordero_print_bordero:
         _legacy_link: "AdminBrtBordero"
     methods: [POST]
 
+mpbrtapishipment_admin_brt_bordero_update_printed:
+    path: /admin/brt/bordero/updatePrinted
+    defaults:
+        _controller: 'MpSoft\MpBrtApiShipment\Controllers\Admin\AdminBrtBorderoController::updatePrintedAction'
+        _legacy_controller: "AdminBrtBordero"
+        _legacy_link: "AdminBrtBordero"
+    methods: [POST]
+
 mpbrtapishipment_admin_brt_bordero_new_label:
     path: /admin/brt/bordero/newLabel
     defaults:
